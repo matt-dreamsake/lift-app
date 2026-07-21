@@ -1,6 +1,6 @@
 /* Lift — offline service worker.
    Bump CACHE version whenever you change any cached file to force an update. */
-const CACHE = 'lift-v1';
+const CACHE = 'lift-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -37,6 +37,12 @@ self.addEventListener('fetch', e => {
       }).catch(() => caches.match('./index.html'))
     );
   } else {
-    e.respondWith(caches.match(req).then(hit => hit || fetch(req)));
+    e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => {
+      if (res && res.status === 200 && req.url.startsWith('http')) {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(req, copy));
+      }
+      return res;
+    }).catch(() => hit)));
   }
 });

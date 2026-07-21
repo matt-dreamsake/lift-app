@@ -332,6 +332,15 @@ svg.wchart{width:100%;height:150px;display:block;overflow:visible}
 .wt-item .chg.upw{color:var(--bad);background:rgba(224,84,75,.12)}
 
 /* ============================================================
+   SYNC
+   ============================================================ */
+.sync-card{background:var(--card);border-radius:var(--r-md);padding:18px;margin-bottom:16px;box-shadow:var(--shadow-sm)}
+.sync-h{font-weight:700;font-size:16px;letter-spacing:-0.02em;margin-bottom:6px}
+.sync-in{width:100%;background:var(--card-sunken);border:none;border-radius:12px;padding:13px 14px;color:var(--txt);font-size:15px;margin-bottom:10px}
+.sync-in:focus{outline:none;box-shadow:0 0 0 2px var(--accent-ring)}
+.sync-row{display:flex;gap:10px}
+
+/* ============================================================
    NAV — frosted glass
    ============================================================ */
 .nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;z-index:40;
@@ -355,6 +364,7 @@ svg.wchart{width:100%;height:150px;display:block;overflow:visible}
   z-index:60;max-width:88%;box-shadow:var(--shadow-lg)}
 .toast.show{opacity:1;transform:translateX(-50%)}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -476,6 +486,7 @@ svg.wchart{width:100%;height:150px;display:block;overflow:visible}
 <div id="s-edit" class="screen">
   <div class="head"><div class="eyebrow">Customise</div><h1>Program</h1>
     <div class="sub">Edit your splits &amp; starting weights</div></div>
+  <div id="sync-panel"></div>
   <div id="edit-list"></div>
   <button class="link" style="display:block;margin:8px 0 4px" onclick="resetAll()">Reset demo data</button>
 </div>
@@ -525,10 +536,90 @@ const SAMPLE={
 };
 
 function loadProg(){try{return JSON.parse(localStorage.getItem(LS_PROG))||deep(SAMPLE);}catch(e){return deep(SAMPLE);}}
-function saveProg(p){localStorage.setItem(LS_PROG,JSON.stringify(p));}
+function saveProg(p){localStorage.setItem(LS_PROG,JSON.stringify(p));touch();}
 function loadHist(){try{return JSON.parse(localStorage.getItem(LS_HIST))||[];}catch(e){return [];}}
-function saveHist(h){localStorage.setItem(LS_HIST,JSON.stringify(h));}
+function saveHist(h){localStorage.setItem(LS_HIST,JSON.stringify(h));touch();}
 function deep(o){return JSON.parse(JSON.stringify(o));}
+
+/* ============ SUPABASE SYNC (offline-first) ============ */
+const SB_URL='https://bxjfjcqatkanzpwcregk.supabase.co';
+const SB_KEY='sb_publishable_G7pbE5ZRuCCeLL99cd_CiA_gAqKh6lh';
+const LS_UPDATED='ll_updated';
+let SB=null, SESSION=null, applyingRemote=false, pushTimer=null, syncState='';
+function touch(){ if(applyingRemote) return; localStorage.setItem(LS_UPDATED,Date.now().toString()); schedulePush(); }
+function localBlob(){ return {program:loadProg(), history:loadHist(), weight:loadWeights()}; }
+function localUpdated(){ return parseInt(localStorage.getItem(LS_UPDATED)||'0'); }
+async function initSupabase(){
+  if(!window.supabase){ renderSync(); return; }
+  try{
+    SB=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+    const {data}=await SB.auth.getSession(); SESSION=data.session;
+    SB.auth.onAuthStateChange((_e,sess)=>{ SESSION=sess; renderSync(); if(sess) pullRemote(); });
+  }catch(e){ console.log('supabase init failed',e); }
+  renderSync();
+  if(SESSION) pullRemote();
+}
+function schedulePush(){ if(!SESSION||!SB) return; clearTimeout(pushTimer); pushTimer=setTimeout(pushRemote,1500); }
+async function pushRemote(){
+  if(!SESSION||!SB) return;
+  setSync('syncing');
+  const ts=localUpdated()||Date.now();
+  const {error}=await SB.from('app_state').upsert({user_id:SESSION.user.id,data:localBlob(),updated_at:new Date(ts).toISOString()});
+  setSync(error?'error':'synced', error&&error.message);
+}
+async function pullRemote(){
+  if(!SESSION||!SB) return;
+  setSync('syncing');
+  const {data,error}=await SB.from('app_state').select('data,updated_at').eq('user_id',SESSION.user.id).maybeSingle();
+  if(error){ setSync('error',error.message); return; }
+  if(!data){ if(!localStorage.getItem(LS_UPDATED)) localStorage.setItem(LS_UPDATED,Date.now().toString()); await pushRemote(); return; }
+  const remoteMs=new Date(data.updated_at).getTime();
+  if(remoteMs>localUpdated()){ applyRemote(data.data); localStorage.setItem(LS_UPDATED,remoteMs.toString()); setSync('synced'); }
+  else { await pushRemote(); }
+}
+function applyRemote(blob){
+  if(!blob) return;
+  applyingRemote=true;
+  if(blob.program) localStorage.setItem(LS_PROG,JSON.stringify(blob.program));
+  localStorage.setItem(LS_HIST,JSON.stringify(blob.history||[]));
+  localStorage.setItem(LS_WEIGHT,JSON.stringify(blob.weight||[]));
+  PROG=loadProg(); applyingRemote=false;
+  const on=document.querySelector('.nav button.on'); go(on?on.dataset.s:'home');
+}
+function setSync(state,msg){ syncState=state; renderSync(); if(state==='error'&&msg) console.log('sync error:',msg); }
+function creds(){ const e=document.getElementById('sync-email'), p=document.getElementById('sync-pw');
+  return {email:e?e.value.trim():'', pw:p?p.value:''}; }
+async function signIn(){ const c=creds(); if(!c.email||!c.pw){toast('Enter email & password');return;}
+  const {error}=await SB.auth.signInWithPassword({email:c.email,password:c.pw}); toast(error?error.message:'Signed in'); }
+async function signUp(){ const c=creds(); if(!c.email||!c.pw){toast('Enter email & password');return;}
+  const {error}=await SB.auth.signUp({email:c.email,password:c.pw}); toast(error?error.message:'Account created'); }
+async function signOut(){ await SB.auth.signOut(); SESSION=null; renderSync(); toast('Signed out'); }
+function syncNow(){ if(SESSION) pullRemote(); }
+function renderSync(){
+  const el=document.getElementById('sync-panel'); if(!el) return;
+  if(!window.supabase){ el.innerHTML='<div class="sync-card"><div class="sync-h">☁︎ Sync</div><div class="small">You\'re offline — sync will connect when you\'re back online.</div></div>'; return; }
+  if(!SESSION){
+    el.innerHTML='<div class="sync-card">'+
+      '<div class="sync-h">☁︎ Sync across devices</div>'+
+      '<div class="small" style="margin-bottom:12px">Sign in to back up and sync your workouts &amp; weight to all your devices.</div>'+
+      '<input id="sync-email" class="sync-in" type="email" inputmode="email" autocomplete="username" placeholder="Email">'+
+      '<input id="sync-pw" class="sync-in" type="password" autocomplete="current-password" placeholder="Password">'+
+      '<div class="sync-row">'+
+        '<button class="btn" style="flex:1" onclick="signIn()">Sign in</button>'+
+        '<button class="btn ghost" style="flex:1" onclick="signUp()">Create account</button>'+
+      '</div></div>';
+    return;
+  }
+  const label=({syncing:'Syncing…',synced:'All synced ✓',error:'Sync error — will retry'})[syncState]||'Connected';
+  el.innerHTML='<div class="sync-card">'+
+    '<div class="sync-h">☁︎ '+label+'</div>'+
+    '<div class="small" style="margin-bottom:12px">'+SESSION.user.email+'</div>'+
+    '<div class="sync-row">'+
+      '<button class="btn ghost" style="flex:1" onclick="syncNow()">Sync now</button>'+
+      '<button class="btn ghost" style="flex:1" onclick="signOut()">Sign out</button>'+
+    '</div></div>';
+}
+
 
 let PROG=loadProg();
 if(!localStorage.getItem(LS_PROG)) saveProg(PROG);
@@ -604,7 +695,7 @@ function renderHome(){
 
 /* ============ BODYWEIGHT ============ */
 function loadWeights(){try{return JSON.parse(localStorage.getItem(LS_WEIGHT))||[];}catch(e){return [];}}
-function saveWeights(w){localStorage.setItem(LS_WEIGHT,JSON.stringify(w));}
+function saveWeights(w){localStorage.setItem(LS_WEIGHT,JSON.stringify(w));touch();}
 function lastWeight(){const w=loadWeights();return w.length?w[w.length-1].kg:START_WEIGHT;}
 function fillSlider(el){
   const min=parseFloat(el.min),max=parseFloat(el.max),v=parseFloat(el.value);
@@ -910,6 +1001,7 @@ function cannedReply(q){
 
 /* ============ PROGRAM EDITOR ============ */
 function renderEdit(){
+  renderSync();
   const wrap=document.getElementById('edit-list');wrap.innerHTML='';
   PROG.workouts.forEach((w,wi)=>{
     const card=document.createElement('div');card.className='card';
@@ -940,7 +1032,7 @@ function resetAll(){
 }
 
 /* ============ INIT ============ */
-renderHome();renderChat();
+renderHome();renderChat();initSupabase();
 window._LL={nextTarget,loadHist,saveHist,e1rm,PROG,loadWeights,saveWeights,lastWeight};
 </script>
 <script>
