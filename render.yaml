@@ -1,0 +1,15 @@
+# Render Static Site config (optional — you can also set these in the dashboard).
+services:
+  - type: web
+    name: lift
+    runtime: static
+    buildCommand: ""
+    staticPublishPath: .
+    headers:
+      - path: /sw.js
+        name: Cache-Control
+        value: no-cache
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
