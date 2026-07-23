@@ -236,6 +236,15 @@ input{font-family:inherit}
 .setrow .txt{flex:1;font-weight:550}
 .setrow .tag{font-size:12px;font-weight:650;color:var(--muted)}
 .setrow .tag.top{color:var(--good)} .setrow .tag.under{color:var(--bad)}
+.setrow{cursor:pointer}
+.setrow.editing{box-shadow:0 0 0 2px var(--accent)}
+.setdel{flex:none;width:28px;height:28px;border-radius:8px;color:var(--muted);font-size:13px;font-weight:600;background:var(--card-sunken)}
+.setdel:active{transform:scale(.9)}
+.resume{display:flex;align-items:center;gap:12px;padding:15px 16px;border-radius:var(--r-md);background:var(--accent-soft);margin-bottom:14px;box-shadow:var(--shadow-sm)}
+.resume .rt{flex:1;min-width:0}
+.resume .rt h3{font-size:15px;font-weight:700;letter-spacing:-0.02em}
+.resume .go{background:var(--accent);color:var(--on-accent);font-weight:700;font-size:14px;padding:10px 16px;border-radius:12px}
+.resume .disc{background:transparent;color:var(--muted);font-size:18px;width:30px;flex:none}
 
 /* ============================================================
    STATS
@@ -431,7 +440,8 @@ svg.wchart{width:100%;height:150px;display:block;overflow:visible}
           <button onclick="bump('r',1)">+</button>
         </div></div>
     </div>
-    <button class="btn good" onclick="logSet()">Log set &amp; rest</button>
+    <button class="btn good" id="log-btn" onclick="logSet()">Log set &amp; rest</button>
+    <button class="btn ghost" id="cancel-edit" onclick="cancelEdit()" style="display:none;margin-top:8px">Cancel edit</button>
   </div>
 
   <div class="rest" id="rest-card">
@@ -504,7 +514,7 @@ svg.wchart{width:100%;height:150px;display:block;overflow:visible}
 
 <script>
 /* ============ STORAGE ============ */
-const LS_PROG='ll_program', LS_HIST='ll_history', LS_WEIGHT='ll_weight';
+const LS_PROG='ll_program', LS_HIST='ll_history', LS_WEIGHT='ll_weight', LS_FLOW='ll_flow';
 const UNIT='kg';
 const START_WEIGHT=85.7;
 
@@ -680,6 +690,17 @@ function renderHome(){
   document.getElementById('home-date').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
   renderBW();
   const wrap=document.getElementById('home-list');wrap.innerHTML='';
+  (function(){
+    let f=null; try{f=JSON.parse(localStorage.getItem(LS_FLOW));}catch(e){}
+    if(!f)return; const w=PROG.workouts.find(x=>x.id===f.workoutId); if(!w)return;
+    const n=Object.values(f.log||{}).reduce((a,st)=>a+st.length,0); if(!n)return;
+    const c=document.createElement('div');c.className='resume';
+    c.innerHTML=`<div class="rt"><h3>Resume ${w.name.split(' (')[0]}</h3><div class="small">${n} set${n>1?'s':''} logged · tap to continue</div></div>`+
+      `<button class="go">Resume</button><button class="disc" aria-label="Discard">✕</button>`;
+    c.querySelector('.go').onclick=resumeFlow;
+    c.querySelector('.disc').onclick=discardFlow;
+    wrap.appendChild(c);
+  })();
   PROG.workouts.forEach(w=>{
     const exNames=w.exercises.slice(0,3).map(e=>e.name.replace(/\s*\(.*\)/,'').split('/')[0].trim()).join(' · ');
     const card=document.createElement('div');
@@ -789,9 +810,13 @@ function weightChart(vals){
 /* ============ WORKOUT FLOW ============ */
 let FLOW=null;
 function startFlow(wid){
+  let f=null; try{f=JSON.parse(localStorage.getItem(LS_FLOW));}catch(e){}
+  const inProg=f&&Object.values(f.log||{}).some(a=>a.length);
+  if(inProg&&!confirm('You have a workout in progress. Start fresh and discard it?'))return;
   const w=PROG.workouts.find(x=>x.id===wid);
-  FLOW={workout:w,exIdx:0,log:{}};
+  FLOW={workout:w,exIdx:0,log:{},editing:null};
   w.exercises.forEach(e=>FLOW.log[e.id]=[]);
+  clearFlow();saveFlow();
   document.getElementById('flow-name').textContent=w.name.split(' (')[0].toUpperCase();
   go('flow');renderFlow();
 }
@@ -805,8 +830,18 @@ function renderFlow(){
   document.getElementById('flow-trep').textContent=`Aim for ${ex.repMin}–${ex.repMax} reps`;
   const sd={up:['up','⬆ Weight up — you earned it'],hold:['hold','➡ Build reps at this weight'],new:['new','★ First session']}[t.status];
   document.getElementById('flow-status').innerHTML=`<span class="statuspill ${sd[0]}">${sd[1]}</span>`;
-  document.getElementById('in-w').value=t.weight;
-  document.getElementById('in-r').value=ex.repMax;
+  const _editing=FLOW.editing!=null && FLOW.log[ex.id][FLOW.editing];
+  if(_editing){
+    document.getElementById('in-w').value=_editing.weight;
+    document.getElementById('in-r').value=_editing.reps;
+    document.getElementById('log-btn').textContent='Update set '+(FLOW.editing+1);
+    document.getElementById('cancel-edit').style.display='block';
+  } else {
+    document.getElementById('in-w').value=t.weight;
+    document.getElementById('in-r').value=ex.repMax;
+    document.getElementById('log-btn').textContent='Log set & rest';
+    document.getElementById('cancel-edit').style.display='none';
+  }
   // dots
   const dd=document.getElementById('flow-dots');dd.innerHTML='';
   for(let i=0;i<ex.sets;i++){
@@ -814,14 +849,18 @@ function renderFlow(){
     d.className='dot'+(i<done?' done':i===done?' cur':'');
     dd.appendChild(d);
   }
-  // logged set list
-  const sl=document.getElementById('flow-sets');sl.innerHTML='';
+  // logged set list (tap to edit, ✕ to remove)
+  const sl=document.getElementById('flow-sets');
+  sl.innerHTML=FLOW.log[ex.id].length?'<div class="small" style="margin:2px 2px 8px">Tap a set to edit · ✕ to remove</div>':'';
   FLOW.log[ex.id].forEach((s,i)=>{
     const tag=s.reps>=ex.repMax?['top','top set ✓']:s.reps<ex.repMin?['under','under range']:['','in range'];
-    const row=document.createElement('div');row.className='setrow done';
-    row.innerHTML=`<span class="badge">✓</span>
+    const row=document.createElement('div');row.className='setrow done'+(FLOW.editing===i?' editing':'');
+    row.innerHTML=`<span class="badge">${i+1}</span>
       <span class="txt num">${s.weight} ${UNIT} × ${s.reps}</span>
-      <span class="tag ${tag[0]}">${tag[1]}</span>`;
+      <span class="tag ${tag[0]}">${tag[1]}</span>
+      <button class="setdel" aria-label="Delete set">✕</button>`;
+    row.onclick=()=>editSet(i);
+    row.querySelector('.setdel').onclick=(ev)=>{ev.stopPropagation();deleteSet(i);};
     sl.appendChild(row);
   });
   // exercise switcher chips
@@ -859,16 +898,20 @@ function bump(f,d){
 }
 function logSet(){
   const ex=curEx();
-  if(FLOW.log[ex.id].length>=ex.sets){toast('All sets done — tap Next');return;}
   const w=parseFloat(document.getElementById('in-w').value)||0;
   const r=parseInt(document.getElementById('in-r').value)||0;
-  FLOW.log[ex.id].push({weight:w,reps:r});haptic(12);
+  if(FLOW.editing!=null && FLOW.log[ex.id][FLOW.editing]){
+    FLOW.log[ex.id][FLOW.editing]={weight:w,reps:r};
+    FLOW.editing=null;haptic(10);saveFlow();renderFlow();toast('Set updated');return;
+  }
+  if(FLOW.log[ex.id].length>=ex.sets){toast('All sets done — tap Next');return;}
+  FLOW.log[ex.id].push({weight:w,reps:r});haptic(12);saveFlow();
   renderFlow();
   if(FLOW.log[ex.id].length<ex.sets)startRest();
 }
 function goExercise(i){
   if(i===FLOW.exIdx)return;
-  haptic(6);FLOW.exIdx=i;renderFlow();
+  haptic(6);FLOW.exIdx=i;FLOW.editing=null;saveFlow();renderFlow();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function nextExercise(){
@@ -880,17 +923,33 @@ function nextExercise(){
     if(FLOW.log[exs[idx].id].length<exs[idx].sets){target=idx;break;}
   }
   if(target===-1){finishWorkout();return;}
-  FLOW.exIdx=target;renderFlow();window.scrollTo({top:0,behavior:'smooth'});
+  FLOW.exIdx=target;FLOW.editing=null;saveFlow();renderFlow();window.scrollTo({top:0,behavior:'smooth'});
 }
 function finishWorkout(){
   const session={date:new Date().toISOString(),workoutId:FLOW.workout.id,
     exercises:FLOW.workout.exercises.map(e=>({id:e.id,name:e.name,sets:FLOW.log[e.id]||[]}))};
   const h=loadHist();h.push(session);saveHist(h);
   const n=session.exercises.reduce((a,e)=>a+e.sets.length,0);
-  FLOW=null;stopTimer();haptic(20);
+  FLOW=null;stopTimer();haptic(20);clearFlow();
   go('home');toast(`Workout saved — ${n} sets logged 💪`);
 }
-function quitFlow(){if(confirm('Exit without saving this workout?')){FLOW=null;stopTimer();go('home');}}
+function quitFlow(){ stopTimer(); const any=FLOW&&Object.values(FLOW.log).some(a=>a.length); if(any){saveFlow();}else{FLOW=null;clearFlow();} go('home'); }
+function saveFlow(){ if(FLOW) localStorage.setItem(LS_FLOW,JSON.stringify({workoutId:FLOW.workout.id,exIdx:FLOW.exIdx,log:FLOW.log})); }
+function clearFlow(){ localStorage.removeItem(LS_FLOW); }
+function resumeFlow(){
+  let f=null; try{f=JSON.parse(localStorage.getItem(LS_FLOW));}catch(e){}
+  if(!f) return;
+  const w=PROG.workouts.find(x=>x.id===f.workoutId);
+  if(!w){clearFlow();renderHome();return;}
+  FLOW={workout:w,exIdx:f.exIdx||0,log:f.log||{},editing:null};
+  w.exercises.forEach(e=>{if(!FLOW.log[e.id])FLOW.log[e.id]=[];});
+  document.getElementById('flow-name').textContent=w.name.split(' (')[0].toUpperCase();
+  go('flow');renderFlow();
+}
+function discardFlow(){ if(confirm('Discard the in-progress workout?')){FLOW=null;clearFlow();renderHome();} }
+function editSet(i){ if(!FLOW)return; FLOW.editing=i; document.getElementById('rest-card').style.display='none'; stopTimer(); renderFlow(); window.scrollTo({top:0,behavior:'smooth'}); }
+function cancelEdit(){ if(!FLOW)return; FLOW.editing=null; renderFlow(); }
+function deleteSet(i){ const ex=curEx(); FLOW.log[ex.id].splice(i,1); if(FLOW.editing===i)FLOW.editing=null; else if(FLOW.editing!=null&&FLOW.editing>i)FLOW.editing--; saveFlow(); renderFlow(); toast('Set removed'); }
 
 /* ============ REST TIMER (circular) ============ */
 const RING_C=2*Math.PI*52;
