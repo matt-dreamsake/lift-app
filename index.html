@@ -596,7 +596,48 @@ const SAMPLE={
   ]
 };
 
-function loadProg(){try{return JSON.parse(localStorage.getItem(pk('program')))||deep(SAMPLE);}catch(e){return deep(SAMPLE);}}
+const GIGI_SAMPLE={
+  units:UNIT,
+  workouts:[
+    {id:'g1',name:'Day 1 (Squat/Glutes/Chest)',glyph:'🏋️‍♀️',exercises:[
+      {id:'squat',name:'Back Squat',sets:3,repMin:8,repMax:10,start:40,inc:2},
+      {id:'bulg',name:'Bulgarian Split Squat',sets:3,repMin:8,repMax:10,start:11,inc:2},
+      {id:'hipthrust',name:'Hip Thrust',sets:3,repMin:10,repMax:12,start:120,inc:2},
+      {id:'chpress',name:'DB Chest Press',sets:3,repMin:8,repMax:10,start:11,inc:2},
+      {id:'fly',name:'Dumbbell Fly',sets:2,repMin:12,repMax:15,start:5,inc:1},
+    ]},
+    {id:'g2',name:'Day 2 (Deadlift/Back/Arms)',glyph:'💫',exercises:[
+      {id:'dbdl',name:'DB Deadlift',sets:3,repMin:10,repMax:12,start:11,inc:2},
+      {id:'row',name:'One-Arm Row',sets:3,repMin:8,repMax:10,start:16,inc:2},
+      {id:'shpress',name:'Shoulder Press',sets:3,repMin:8,repMax:10,start:10,inc:2},
+      {id:'latr',name:'Lateral Raise',sets:3,repMin:12,repMax:15,start:3,inc:1},
+      {id:'curl',name:'Bicep Curl',sets:3,repMin:12,repMax:15,start:4,inc:1},
+      {id:'core',name:'Core Circuit',sets:3,repMin:12,repMax:15,start:0,inc:0},
+    ]},
+    {id:'g3',name:'Day 3 (Full Body)',glyph:'🔥',exercises:[
+      {id:'squat',name:'Back Squat',sets:3,repMin:8,repMax:10,start:40,inc:2},
+      {id:'hipthrust',name:'Hip Thrust',sets:3,repMin:10,repMax:12,start:120,inc:2},
+      {id:'shpress',name:'Shoulder Press',sets:3,repMin:8,repMax:10,start:11,inc:2},
+      {id:'row',name:'One-Arm Row',sets:3,repMin:8,repMax:10,start:16,inc:2},
+      {id:'reardelt',name:'Rear Delt Fly',sets:3,repMin:12,repMax:15,start:3,inc:1},
+      {id:'calf',name:'Calf Raise',sets:3,repMin:12,repMax:15,start:10,inc:2},
+    ]},
+  ]
+};
+function defaultProgram(){return (currentProfile()==='gigi')?GIGI_SAMPLE:SAMPLE;}
+function seedGigi(){
+  if(localStorage.getItem('ll_gigi_seeded'))return;
+  const raw=localStorage.getItem('ll_gigi_program');
+  let prog=null; try{prog=JSON.parse(raw);}catch(e){}
+  const hasHistory=(function(){try{return (JSON.parse(localStorage.getItem('ll_gigi_history'))||[]).length>0;}catch(e){return false;}})();
+  // replace only if empty or still the untouched default PPL (and she has no logged sessions)
+  if(!prog || (!hasHistory && prog.workouts && prog.workouts[0] && prog.workouts[0].id==='push')){
+    localStorage.setItem('ll_gigi_program',JSON.stringify(GIGI_SAMPLE));
+  }
+  localStorage.setItem('ll_gigi_seeded','1');
+}
+
+function loadProg(){try{return JSON.parse(localStorage.getItem(pk('program')))||deep(defaultProgram());}catch(e){return deep(defaultProgram());}}
 function saveProg(p){localStorage.setItem(pk('program'),JSON.stringify(p));touch();}
 function loadHist(){try{return JSON.parse(localStorage.getItem(pk('history')))||[];}catch(e){return [];}}
 function saveHist(h){localStorage.setItem(pk('history'),JSON.stringify(h));touch();}
@@ -681,7 +722,7 @@ function renderSync(){
 }
 
 
-migrateLegacy();
+migrateLegacy();seedGigi();
 let PROG=loadProg();
 if(!localStorage.getItem(pk('program'))) saveProg(PROG);
 
