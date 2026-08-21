@@ -170,6 +170,10 @@ input{font-family:inherit}
 .statuspill.up{background:var(--good-soft);color:var(--good)}
 .statuspill.hold{background:var(--accent-soft);color:var(--accent)}
 .statuspill.new{background:var(--accent-soft);color:var(--accent)}
+.nudge{margin:12px auto 0;display:inline-block;background:var(--accent);color:var(--on-accent);
+  font-size:13.5px;font-weight:700;padding:9px 16px;border-radius:30px;
+  box-shadow:0 6px 18px var(--accent-ring);animation:nudgeIn .5s var(--spring)}
+@keyframes nudgeIn{from{opacity:0;transform:translateY(6px) scale(.9)}to{opacity:1;transform:none}}
 
 /* set dots — activity-style */
 .dots{display:flex;justify-content:center;gap:9px;margin-top:20px}
@@ -453,6 +457,7 @@ svg.wchart{width:100%;height:150px;display:block;overflow:visible}
     <div class="weight"><span class="num" id="flow-tw">0</span><span class="u">kg</span></div>
     <div class="reprange" id="flow-trep"></div>
     <div id="flow-status"></div>
+    <div class="nudge" id="flow-nudge" style="display:none">⬆️ Time to step the weight up!</div>
     <div class="dots" id="flow-dots"></div>
   </div>
 
@@ -749,6 +754,15 @@ function nextTarget(ex){
   return {weight:base,status:'hold'};
 }
 function mode(arr){const c={};let best=arr[0],bc=0;arr.forEach(v=>{c[v]=(c[v]||0)+1;if(c[v]>bc){bc=c[v];best=v;}});return best;}
+function sameWeightStreak(exId){
+  const h=loadHist();const weights=[];
+  for(let i=h.length-1;i>=0 && weights.length<3;i--){
+    const e=h[i].exercises.find(x=>x.id===exId&&x.sets.length);
+    if(e) weights.push(mode(e.sets.map(st=>st.weight)));
+  }
+  if(weights.length<3) return 0;
+  return (weights[0]===weights[1]&&weights[1]===weights[2])?3:0;
+}
 function round(w){return Math.round(w*2)/2;}
 function e1rm(w,r){return r<=0?0:w*(1+r/30);}
 
@@ -927,6 +941,9 @@ function renderFlow(){
   document.getElementById('flow-trep').textContent=`Aim for ${ex.repMin}–${ex.repMax} reps`;
   const sd={up:['up','⬆ Weight up — you earned it'],hold:['hold','➡ Build reps at this weight'],new:['new','★ First session']}[t.status];
   document.getElementById('flow-status').innerHTML=`<span class="statuspill ${sd[0]}">${sd[1]}</span>`;
+  const _stuck=t.status==='hold'&&sameWeightStreak(ex.id)>=3;
+  document.getElementById('flow-nudge').style.display=_stuck?'inline-block':'none';
+  if(_stuck){ FLOW.nudged=FLOW.nudged||{}; if(!FLOW.nudged[ex.id]){FLOW.nudged[ex.id]=1;toast('Time to step the weight up! ⬆️');haptic(15);} }
   const _editing=FLOW.editing!=null && FLOW.log[ex.id][FLOW.editing];
   if(_editing){
     document.getElementById('in-w').value=_editing.weight;
