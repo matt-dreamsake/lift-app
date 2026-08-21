@@ -624,25 +624,25 @@ const SAMPLE={
   units:UNIT,
   workouts:[
     {id:'push',name:'Push (Chest/Shoulders/Tris)',glyph:'💥',exercises:[
-      {id:'bench',name:'Barbell Bench Press',sets:3,repMin:6,repMax:8,start:60,inc:2.5},
-      {id:'ohp',name:'Overhead Press',sets:3,repMin:8,repMax:10,start:35,inc:2.5},
-      {id:'incdb',name:'Incline DB Press',sets:3,repMin:8,repMax:12,start:22.5,inc:2.5},
-      {id:'latr',name:'Lateral Raise',sets:3,repMin:12,repMax:15,start:10,inc:2},
-      {id:'pushd',name:'Triceps Pushdown',sets:3,repMin:10,repMax:12,start:25,inc:2.5},
+      {id:'bench',name:'Barbell Bench Press',sets:3,repMin:6,repMax:8,start:60,inc:0.5},
+      {id:'ohp',name:'Overhead Press',sets:3,repMin:8,repMax:10,start:35,inc:0.5},
+      {id:'incdb',name:'Incline DB Press',sets:3,repMin:8,repMax:12,start:22.5,inc:0.5},
+      {id:'latr',name:'Lateral Raise',sets:3,repMin:12,repMax:15,start:10,inc:0.5},
+      {id:'pushd',name:'Triceps Pushdown',sets:3,repMin:10,repMax:12,start:25,inc:0.5},
     ]},
     {id:'pull',name:'Pull (Back/Biceps)',glyph:'🪝',exercises:[
-      {id:'dead',name:'Deadlift',sets:3,repMin:4,repMax:6,start:100,inc:5},
-      {id:'pull',name:'Pull-up / Lat Pulldown',sets:3,repMin:8,repMax:10,start:50,inc:2.5},
-      {id:'row',name:'Barbell Row',sets:3,repMin:8,repMax:10,start:55,inc:2.5},
-      {id:'face',name:'Face Pull',sets:3,repMin:12,repMax:15,start:20,inc:2.5},
-      {id:'curl',name:'Barbell Curl',sets:3,repMin:8,repMax:12,start:25,inc:2.5},
+      {id:'dead',name:'Deadlift',sets:3,repMin:4,repMax:6,start:100,inc:0.5},
+      {id:'pull',name:'Pull-up / Lat Pulldown',sets:3,repMin:8,repMax:10,start:50,inc:0.5},
+      {id:'row',name:'Barbell Row',sets:3,repMin:8,repMax:10,start:55,inc:0.5},
+      {id:'face',name:'Face Pull',sets:3,repMin:12,repMax:15,start:20,inc:0.5},
+      {id:'curl',name:'Barbell Curl',sets:3,repMin:8,repMax:12,start:25,inc:0.5},
     ]},
     {id:'legs',name:'Legs (Quads/Hams/Calves)',glyph:'🦵',exercises:[
-      {id:'squat',name:'Back Squat',sets:3,repMin:6,repMax:8,start:80,inc:2.5},
-      {id:'rdl',name:'Romanian Deadlift',sets:3,repMin:8,repMax:10,start:70,inc:2.5},
-      {id:'lpress',name:'Leg Press',sets:3,repMin:10,repMax:12,start:120,inc:5},
-      {id:'lcurl',name:'Leg Curl',sets:3,repMin:10,repMax:12,start:35,inc:2.5},
-      {id:'calf',name:'Standing Calf Raise',sets:3,repMin:12,repMax:15,start:50,inc:2.5},
+      {id:'squat',name:'Back Squat',sets:3,repMin:6,repMax:8,start:80,inc:0.5},
+      {id:'rdl',name:'Romanian Deadlift',sets:3,repMin:8,repMax:10,start:70,inc:0.5},
+      {id:'lpress',name:'Leg Press',sets:3,repMin:10,repMax:12,start:120,inc:0.5},
+      {id:'lcurl',name:'Leg Curl',sets:3,repMin:10,repMax:12,start:35,inc:0.5},
+      {id:'calf',name:'Standing Calf Raise',sets:3,repMin:12,repMax:15,start:50,inc:0.5},
     ]},
   ]
 };
@@ -651,27 +651,27 @@ const GIGI_SAMPLE={
   units:UNIT,
   workouts:[
     {id:'g1',name:'Day 1 (Squat/Glutes/Chest)',glyph:'🏋️‍♀️',exercises:[
-      {id:'squat',name:'Back Squat',sets:3,repMin:8,repMax:10,start:40,inc:2},
-      {id:'bulg',name:'Bulgarian Split Squat',sets:3,repMin:8,repMax:10,start:11,inc:2},
-      {id:'hipthrust',name:'Hip Thrust',sets:3,repMin:10,repMax:12,start:120,inc:2},
-      {id:'chpress',name:'DB Chest Press',sets:3,repMin:8,repMax:10,start:11,inc:2},
-      {id:'fly',name:'Dumbbell Fly',sets:2,repMin:12,repMax:15,start:5,inc:1},
+      {id:'squat',name:'Back Squat',sets:3,repMin:8,repMax:10,start:40,inc:0.5},
+      {id:'bulg',name:'Bulgarian Split Squat',sets:3,repMin:8,repMax:10,start:11,inc:0.5},
+      {id:'hipthrust',name:'Hip Thrust',sets:3,repMin:10,repMax:12,start:120,inc:0.5},
+      {id:'chpress',name:'DB Chest Press',sets:3,repMin:8,repMax:10,start:11,inc:0.5},
+      {id:'fly',name:'Dumbbell Fly',sets:2,repMin:12,repMax:15,start:5,inc:0.5},
     ]},
     {id:'g2',name:'Day 2 (Deadlift/Back/Arms)',glyph:'💫',exercises:[
-      {id:'dbdl',name:'DB Deadlift',sets:3,repMin:10,repMax:12,start:11,inc:2},
-      {id:'row',name:'One-Arm Row',sets:3,repMin:8,repMax:10,start:16,inc:2},
-      {id:'shpress',name:'Shoulder Press',sets:3,repMin:8,repMax:10,start:10,inc:2},
-      {id:'latr',name:'Lateral Raise',sets:3,repMin:12,repMax:15,start:3,inc:1},
-      {id:'curl',name:'Bicep Curl',sets:3,repMin:12,repMax:15,start:4,inc:1},
-      {id:'core',name:'Core Circuit',sets:3,repMin:12,repMax:15,start:0,inc:0},
+      {id:'dbdl',name:'DB Deadlift',sets:3,repMin:10,repMax:12,start:11,inc:0.5},
+      {id:'row',name:'One-Arm Row',sets:3,repMin:8,repMax:10,start:16,inc:0.5},
+      {id:'shpress',name:'Shoulder Press',sets:3,repMin:8,repMax:10,start:10,inc:0.5},
+      {id:'latr',name:'Lateral Raise',sets:3,repMin:12,repMax:15,start:3,inc:0.5},
+      {id:'curl',name:'Bicep Curl',sets:3,repMin:12,repMax:15,start:4,inc:0.5},
+      {id:'core',name:'Core Circuit',sets:3,repMin:12,repMax:15,start:0,inc:0.5},
     ]},
     {id:'g3',name:'Day 3 (Full Body)',glyph:'🔥',exercises:[
-      {id:'squat',name:'Back Squat',sets:3,repMin:8,repMax:10,start:40,inc:2},
-      {id:'hipthrust',name:'Hip Thrust',sets:3,repMin:10,repMax:12,start:120,inc:2},
-      {id:'shpress',name:'Shoulder Press',sets:3,repMin:8,repMax:10,start:11,inc:2},
-      {id:'row',name:'One-Arm Row',sets:3,repMin:8,repMax:10,start:16,inc:2},
-      {id:'reardelt',name:'Rear Delt Fly',sets:3,repMin:12,repMax:15,start:3,inc:1},
-      {id:'calf',name:'Calf Raise',sets:3,repMin:12,repMax:15,start:10,inc:2},
+      {id:'squat',name:'Back Squat',sets:3,repMin:8,repMax:10,start:40,inc:0.5},
+      {id:'hipthrust',name:'Hip Thrust',sets:3,repMin:10,repMax:12,start:120,inc:0.5},
+      {id:'shpress',name:'Shoulder Press',sets:3,repMin:8,repMax:10,start:11,inc:0.5},
+      {id:'row',name:'One-Arm Row',sets:3,repMin:8,repMax:10,start:16,inc:0.5},
+      {id:'reardelt',name:'Rear Delt Fly',sets:3,repMin:12,repMax:15,start:3,inc:0.5},
+      {id:'calf',name:'Calf Raise',sets:3,repMin:12,repMax:15,start:10,inc:0.5},
     ]},
   ]
 };
@@ -688,7 +688,8 @@ function seedGigi(){
   localStorage.setItem('ll_gigi_seeded','1');
 }
 
-function loadProg(){try{return JSON.parse(localStorage.getItem(pk('program')))||deep(defaultProgram());}catch(e){return deep(defaultProgram());}}
+function normInc(p){if(p&&p.workouts)p.workouts.forEach(function(w){(w.exercises||[]).forEach(function(e){e.inc=0.5;});});return p;}
+function loadProg(){try{return normInc(JSON.parse(localStorage.getItem(pk('program')))||deep(defaultProgram()));}catch(e){return normInc(deep(defaultProgram()));}}
 function saveProg(p){localStorage.setItem(pk('program'),JSON.stringify(p));touch();}
 function loadHist(){try{return JSON.parse(localStorage.getItem(pk('history')))||[];}catch(e){return [];}}
 function saveHist(h){localStorage.setItem(pk('history'),JSON.stringify(h));touch();}
@@ -1052,7 +1053,7 @@ function renderFlow(){
 }
 function bump(f,d){
   const el=document.getElementById(f==='w'?'in-w':'in-r');
-  const step=f==='w'?(curEx().inc||2.5):1;
+  const step=f==='w'?(curEx().inc||0.5):1;
   let v=parseFloat(el.value||0)+d*step;if(v<0)v=0;
   el.value=f==='w'?round(v):Math.round(v);haptic(6);
 }
@@ -1281,7 +1282,7 @@ function confirmAddEx(){
   const id=slug(PICK[0]);
   const exists=FLOW.workout.exercises.findIndex(function(e){return e.id===id;});
   if(exists>=0){closeExPicker();goExercise(exists);toast('Already in this workout');return;}
-  const ex={id:id,name:PICK[0],sets:3,repMin:PICK[1],repMax:PICK[2],start:round(wv),inc:wv>=40?2.5:wv>=10?2:1};
+  const ex={id:id,name:PICK[0],sets:3,repMin:PICK[1],repMax:PICK[2],start:round(wv),inc:0.5};
   FLOW.workout.exercises.push(ex);
   FLOW.log[ex.id]=[];
   saveProg(PROG);saveFlow();
@@ -1313,7 +1314,7 @@ function renderEdit(){
   });
 }
 function edSet(wi,ei,f,v){const ex=PROG.workouts[wi].exercises[ei];ex[f]=(f==='name')?v:parseFloat(v)||0;saveProg(PROG);}
-function edAdd(wi){PROG.workouts[wi].exercises.push({id:'ex'+Date.now(),name:'New exercise',sets:3,repMin:8,repMax:12,start:20,inc:2.5});saveProg(PROG);renderEdit();}
+function edAdd(wi){PROG.workouts[wi].exercises.push({id:'ex'+Date.now(),name:'New exercise',sets:3,repMin:8,repMax:12,start:20,inc:0.5});saveProg(PROG);renderEdit();}
 function edDel(wi,ei){if(confirm('Remove this exercise?')){PROG.workouts[wi].exercises.splice(ei,1);saveProg(PROG);renderEdit();}}
 function resetAll(){
   if(confirm('Reset program AND clear all logged history? This cannot be undone.')){
