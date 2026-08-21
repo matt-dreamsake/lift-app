@@ -372,14 +372,43 @@ svg.wchart{width:100%;height:150px;display:block;overflow:visible}
   opacity:0;pointer-events:none;transition:opacity .35s var(--ease),transform .35s var(--spring);
   z-index:60;max-width:88%;box-shadow:var(--shadow-lg)}
 .toast.show{opacity:1;transform:translateX(-50%)}
+/* profile gate + chip */
+.pgate{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:28px;animation:screenIn .4s var(--ease)}
+.pgate.hidden{display:none}
+.pgate-inner{width:100%;max-width:360px;text-align:center}
+.pgate-logo{font-size:44px;margin-bottom:6px}
+.pgate-title{font-size:30px;font-weight:800;letter-spacing:-0.03em}
+.pgate-sub{color:var(--muted);font-size:16px;margin:6px 0 28px;font-weight:500}
+.pgate-cards{display:flex;gap:14px}
+.pcard{flex:1;background:var(--card);box-shadow:var(--shadow);border-radius:var(--r-lg);padding:26px 14px;display:flex;flex-direction:column;align-items:center;gap:12px;transition:transform .3s var(--spring)}
+.pcard:active{transform:scale(.95)}
+.pc-emoji{font-size:38px;width:76px;height:76px;border-radius:50%;background:var(--accent-soft);display:flex;align-items:center;justify-content:center}
+.pc-name{font-size:18px;font-weight:700;letter-spacing:-0.02em}
+.head{position:relative}
+.pchip{position:absolute;top:26px;right:0;background:var(--card);box-shadow:var(--shadow-sm);border-radius:30px;padding:8px 14px;font-size:13.5px;font-weight:650;color:var(--txt)}
+.pchip:active{transform:scale(.94)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
+<!-- PROFILE GATE -->
+<div id="profile-gate" class="pgate">
+  <div class="pgate-inner">
+    <div class="pgate-logo">🏋️</div>
+    <div class="pgate-title">Lift</div>
+    <div class="pgate-sub">Who's training?</div>
+    <div class="pgate-cards">
+      <button class="pcard" onclick="chooseProfile('matt')"><span class="pc-emoji">💪</span><span class="pc-name">Matt</span></button>
+      <button class="pcard" onclick="chooseProfile('gigi')"><span class="pc-emoji">✨</span><span class="pc-name">Gigi</span></button>
+    </div>
+  </div>
+</div>
+
 <!-- HOME -->
 <div id="s-home" class="screen active">
   <div class="head">
+    <button id="profile-chip" class="pchip" onclick="showGate()">💪 Matt</button>
     <div class="eyebrow" id="home-greet">Welcome back</div>
     <h1>Today's Lift</h1>
     <div class="sub" id="home-date"></div>
@@ -514,7 +543,29 @@ svg.wchart{width:100%;height:150px;display:block;overflow:visible}
 
 <script>
 /* ============ STORAGE ============ */
-const LS_PROG='ll_program', LS_HIST='ll_history', LS_WEIGHT='ll_weight', LS_FLOW='ll_flow';
+const PROFILES=[{id:'matt',name:'Matt',emoji:'💪'},{id:'gigi',name:'Gigi',emoji:'✨'}];
+function currentProfile(){return localStorage.getItem('ll_profile');}
+function setProfile(id){localStorage.setItem('ll_profile',id);}
+function pk(base){return 'll_'+(currentProfile()||'matt')+'_'+base;}
+function migrateLegacy(){
+  if(localStorage.getItem('ll_migrated'))return;
+  [['ll_program','program'],['ll_history','history'],['ll_weight','weight'],['ll_flow','flow']].forEach(function(m){
+    const v=localStorage.getItem(m[0]); const nk='ll_matt_'+m[1];
+    if(v!=null && localStorage.getItem(nk)==null) localStorage.setItem(nk,v);
+    localStorage.removeItem(m[0]);
+  });
+  localStorage.setItem('ll_migrated','1');
+}
+function readProfileBlob(pid){
+  const g=function(k){try{return JSON.parse(localStorage.getItem('ll_'+pid+'_'+k));}catch(e){return null;}};
+  return {program:g('program'),history:g('history')||[],weight:g('weight')||[]};
+}
+function writeProfileBlob(pid,b){
+  if(!b)return;
+  if(b.program) localStorage.setItem('ll_'+pid+'_program',JSON.stringify(b.program));
+  localStorage.setItem('ll_'+pid+'_history',JSON.stringify(b.history||[]));
+  localStorage.setItem('ll_'+pid+'_weight',JSON.stringify(b.weight||[]));
+}
 const UNIT='kg';
 const START_WEIGHT=85.7;
 
@@ -545,10 +596,10 @@ const SAMPLE={
   ]
 };
 
-function loadProg(){try{return JSON.parse(localStorage.getItem(LS_PROG))||deep(SAMPLE);}catch(e){return deep(SAMPLE);}}
-function saveProg(p){localStorage.setItem(LS_PROG,JSON.stringify(p));touch();}
-function loadHist(){try{return JSON.parse(localStorage.getItem(LS_HIST))||[];}catch(e){return [];}}
-function saveHist(h){localStorage.setItem(LS_HIST,JSON.stringify(h));touch();}
+function loadProg(){try{return JSON.parse(localStorage.getItem(pk('program')))||deep(SAMPLE);}catch(e){return deep(SAMPLE);}}
+function saveProg(p){localStorage.setItem(pk('program'),JSON.stringify(p));touch();}
+function loadHist(){try{return JSON.parse(localStorage.getItem(pk('history')))||[];}catch(e){return [];}}
+function saveHist(h){localStorage.setItem(pk('history'),JSON.stringify(h));touch();}
 function deep(o){return JSON.parse(JSON.stringify(o));}
 
 /* ============ SUPABASE SYNC (offline-first) ============ */
@@ -557,7 +608,7 @@ const SB_KEY='sb_publishable_G7pbE5ZRuCCeLL99cd_CiA_gAqKh6lh';
 const LS_UPDATED='ll_updated';
 let SB=null, SESSION=null, applyingRemote=false, pushTimer=null, syncState='';
 function touch(){ if(applyingRemote) return; localStorage.setItem(LS_UPDATED,Date.now().toString()); schedulePush(); }
-function localBlob(){ return {program:loadProg(), history:loadHist(), weight:loadWeights()}; }
+function localBlob(){ const o={}; PROFILES.forEach(function(p){o[p.id]=readProfileBlob(p.id);}); return {v:2,profiles:o}; }
 function localUpdated(){ return parseInt(localStorage.getItem(LS_UPDATED)||'0'); }
 async function initSupabase(){
   if(!window.supabase){ renderSync(); return; }
@@ -590,9 +641,8 @@ async function pullRemote(){
 function applyRemote(blob){
   if(!blob) return;
   applyingRemote=true;
-  if(blob.program) localStorage.setItem(LS_PROG,JSON.stringify(blob.program));
-  localStorage.setItem(LS_HIST,JSON.stringify(blob.history||[]));
-  localStorage.setItem(LS_WEIGHT,JSON.stringify(blob.weight||[]));
+  if(blob.profiles){ Object.keys(blob.profiles).forEach(function(pid){writeProfileBlob(pid,blob.profiles[pid]);}); }
+  else { writeProfileBlob('matt',{program:blob.program,history:blob.history,weight:blob.weight}); }
   PROG=loadProg(); applyingRemote=false;
   const on=document.querySelector('.nav button.on'); go(on?on.dataset.s:'home');
 }
@@ -631,8 +681,9 @@ function renderSync(){
 }
 
 
+migrateLegacy();
 let PROG=loadProg();
-if(!localStorage.getItem(LS_PROG)) saveProg(PROG);
+if(!localStorage.getItem(pk('program'))) saveProg(PROG);
 
 /* ============ PROGRESSION ENGINE (double progression) ============ */
 function lastSession(exId){
@@ -685,13 +736,15 @@ function animateNum(el,to){
 
 /* ============ HOME ============ */
 function renderHome(){
+  const _p=PROFILES.find(function(x){return x.id===(currentProfile()||'matt');})||PROFILES[0];
+  const _pc=document.getElementById('profile-chip'); if(_pc)_pc.textContent=_p.emoji+' '+_p.name;
   const hr=new Date().getHours();
   document.getElementById('home-greet').textContent=hr<12?'Good morning':hr<18?'Good afternoon':'Good evening';
   document.getElementById('home-date').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
   renderBW();
   const wrap=document.getElementById('home-list');wrap.innerHTML='';
   (function(){
-    let f=null; try{f=JSON.parse(localStorage.getItem(LS_FLOW));}catch(e){}
+    let f=null; try{f=JSON.parse(localStorage.getItem(pk('flow')));}catch(e){}
     if(!f)return; const w=PROG.workouts.find(x=>x.id===f.workoutId); if(!w)return;
     const n=Object.values(f.log||{}).reduce((a,st)=>a+st.length,0); if(!n)return;
     const c=document.createElement('div');c.className='resume';
@@ -715,8 +768,8 @@ function renderHome(){
 }
 
 /* ============ BODYWEIGHT ============ */
-function loadWeights(){try{return JSON.parse(localStorage.getItem(LS_WEIGHT))||[];}catch(e){return [];}}
-function saveWeights(w){localStorage.setItem(LS_WEIGHT,JSON.stringify(w));touch();}
+function loadWeights(){try{return JSON.parse(localStorage.getItem(pk('weight')))||[];}catch(e){return [];}}
+function saveWeights(w){localStorage.setItem(pk('weight'),JSON.stringify(w));touch();}
 function lastWeight(){const w=loadWeights();return w.length?w[w.length-1].kg:START_WEIGHT;}
 function fillSlider(el){
   const min=parseFloat(el.min),max=parseFloat(el.max),v=parseFloat(el.value);
@@ -810,7 +863,7 @@ function weightChart(vals){
 /* ============ WORKOUT FLOW ============ */
 let FLOW=null;
 function startFlow(wid){
-  let f=null; try{f=JSON.parse(localStorage.getItem(LS_FLOW));}catch(e){}
+  let f=null; try{f=JSON.parse(localStorage.getItem(pk('flow')));}catch(e){}
   const inProg=f&&Object.values(f.log||{}).some(a=>a.length);
   if(inProg&&!confirm('You have a workout in progress. Start fresh and discard it?'))return;
   const w=PROG.workouts.find(x=>x.id===wid);
@@ -934,10 +987,10 @@ function finishWorkout(){
   go('home');toast(`Workout saved — ${n} sets logged 💪`);
 }
 function quitFlow(){ stopTimer(); const any=FLOW&&Object.values(FLOW.log).some(a=>a.length); if(any){saveFlow();}else{FLOW=null;clearFlow();} go('home'); }
-function saveFlow(){ if(FLOW) localStorage.setItem(LS_FLOW,JSON.stringify({workoutId:FLOW.workout.id,exIdx:FLOW.exIdx,log:FLOW.log})); }
-function clearFlow(){ localStorage.removeItem(LS_FLOW); }
+function saveFlow(){ if(FLOW) localStorage.setItem(pk('flow'),JSON.stringify({workoutId:FLOW.workout.id,exIdx:FLOW.exIdx,log:FLOW.log})); }
+function clearFlow(){ localStorage.removeItem(pk('flow')); }
 function resumeFlow(){
-  let f=null; try{f=JSON.parse(localStorage.getItem(LS_FLOW));}catch(e){}
+  let f=null; try{f=JSON.parse(localStorage.getItem(pk('flow')));}catch(e){}
   if(!f) return;
   const w=PROG.workouts.find(x=>x.id===f.workoutId);
   if(!w){clearFlow();renderHome();return;}
@@ -1085,13 +1138,20 @@ function edAdd(wi){PROG.workouts[wi].exercises.push({id:'ex'+Date.now(),name:'Ne
 function edDel(wi,ei){if(confirm('Remove this exercise?')){PROG.workouts[wi].exercises.splice(ei,1);saveProg(PROG);renderEdit();}}
 function resetAll(){
   if(confirm('Reset program AND clear all logged history? This cannot be undone.')){
-    localStorage.removeItem(LS_PROG);localStorage.removeItem(LS_HIST);localStorage.removeItem(LS_WEIGHT);
+    localStorage.removeItem(pk('program'));localStorage.removeItem(pk('history'));localStorage.removeItem(pk('weight'));
     PROG=loadProg();saveProg(PROG);renderEdit();toast('Reset to demo program');
   }
 }
 
 /* ============ INIT ============ */
-renderHome();renderChat();initSupabase();
+renderHome();renderChat();initSupabase();showGate();
+function showGate(){var g=document.getElementById('profile-gate'); if(g) g.classList.remove('hidden');}
+function hideGate(){var g=document.getElementById('profile-gate'); if(g) g.classList.add('hidden');}
+function chooseProfile(id){
+  setProfile(id);
+  PROG=loadProg(); if(!localStorage.getItem(pk('program'))) saveProg(PROG);
+  hideGate(); go('home'); haptic(10);
+}
 window._LL={nextTarget,loadHist,saveHist,e1rm,PROG,loadWeights,saveWeights,lastWeight};
 </script>
 <script>
