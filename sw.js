@@ -1,13 +1,15 @@
 /* Lift — offline service worker.
    Bump CACHE version whenever you change any cached file to force an update. */
-const CACHE = 'lift-v5';
+const CACHE = 'lift-v6';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/apple-touch-icon.png'
+  './icons/apple-touch-icon.png',
+  './icons/avatar-matt.png',
+  './icons/avatar-gigi.png'
 ];
 
 // Pre-cache the app shell on install.

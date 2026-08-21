@@ -387,6 +387,9 @@ svg.wchart{width:100%;height:150px;display:block;overflow:visible}
 .head{position:relative}
 .pchip{position:absolute;top:26px;right:0;background:var(--card);box-shadow:var(--shadow-sm);border-radius:30px;padding:8px 14px;font-size:13.5px;font-weight:650;color:var(--txt)}
 .pchip:active{transform:scale(.94)}
+.pc-img{width:84px;height:84px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 4px var(--accent-soft);image-rendering:pixelated}
+.pchip{display:inline-flex;align-items:center;gap:7px}
+.pchip img{width:24px;height:24px;border-radius:50%;object-fit:cover;image-rendering:pixelated}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -399,8 +402,8 @@ svg.wchart{width:100%;height:150px;display:block;overflow:visible}
     <div class="pgate-title">Lift</div>
     <div class="pgate-sub">Who's training?</div>
     <div class="pgate-cards">
-      <button class="pcard" onclick="chooseProfile('matt')"><span class="pc-emoji">💪</span><span class="pc-name">Matt</span></button>
-      <button class="pcard" onclick="chooseProfile('gigi')"><span class="pc-emoji">✨</span><span class="pc-name">Gigi</span></button>
+      <button class="pcard" onclick="chooseProfile('matt')"><img class="pc-img" src="icons/avatar-matt.png" alt="Matt"><span class="pc-name">Matt</span></button>
+      <button class="pcard" onclick="chooseProfile('gigi')"><img class="pc-img" src="icons/avatar-gigi.png" alt="Gigi"><span class="pc-name">Gigi</span></button>
     </div>
   </div>
 </div>
@@ -408,7 +411,7 @@ svg.wchart{width:100%;height:150px;display:block;overflow:visible}
 <!-- HOME -->
 <div id="s-home" class="screen active">
   <div class="head">
-    <button id="profile-chip" class="pchip" onclick="showGate()">💪 Matt</button>
+    <button id="profile-chip" class="pchip" onclick="showGate()"><img src="icons/avatar-matt.png" alt="">Matt</button>
     <div class="eyebrow" id="home-greet">Welcome back</div>
     <h1>Today's Lift</h1>
     <div class="sub" id="home-date"></div>
@@ -543,7 +546,7 @@ svg.wchart{width:100%;height:150px;display:block;overflow:visible}
 
 <script>
 /* ============ STORAGE ============ */
-const PROFILES=[{id:'matt',name:'Matt',emoji:'💪'},{id:'gigi',name:'Gigi',emoji:'✨'}];
+const PROFILES=[{id:'matt',name:'Matt',emoji:'💪',avatar:'icons/avatar-matt.png'},{id:'gigi',name:'Gigi',emoji:'✨',avatar:'icons/avatar-gigi.png'}];
 function currentProfile(){return localStorage.getItem('ll_profile');}
 function setProfile(id){localStorage.setItem('ll_profile',id);}
 function pk(base){return 'll_'+(currentProfile()||'matt')+'_'+base;}
@@ -778,7 +781,7 @@ function animateNum(el,to){
 /* ============ HOME ============ */
 function renderHome(){
   const _p=PROFILES.find(function(x){return x.id===(currentProfile()||'matt');})||PROFILES[0];
-  const _pc=document.getElementById('profile-chip'); if(_pc)_pc.textContent=_p.emoji+' '+_p.name;
+  const _pc=document.getElementById('profile-chip'); if(_pc)_pc.innerHTML='<img src="'+_p.avatar+'" alt="">'+_p.name;
   const hr=new Date().getHours();
   document.getElementById('home-greet').textContent=hr<12?'Good morning':hr<18?'Good afternoon':'Good evening';
   document.getElementById('home-date').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
