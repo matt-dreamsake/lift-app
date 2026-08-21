@@ -148,6 +148,31 @@ input{font-family:inherit}
 .exchip.cur .ec{color:var(--on-accent);opacity:.9}
 .exchip.done{background:var(--good-soft);color:var(--good)}
 .exchip.done .ec{color:var(--good)}
+.exchip.add{background:var(--accent-soft);color:var(--accent);font-weight:700}
+/* exercise picker sheet */
+.sheet-bg{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .3s var(--ease)}
+.sheet-bg.open{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:81;max-width:480px;margin:0 auto;
+  background:var(--bg-elev);border-radius:26px 26px 0 0;box-shadow:var(--shadow-lg);
+  transform:translateY(105%);transition:transform .4s var(--spring);
+  max-height:82vh;display:flex;flex-direction:column;padding:18px 18px calc(18px + env(safe-area-inset-bottom))}
+.sheet.open{transform:none}
+.sheet-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sheet-hd h3{font-size:18px;font-weight:750;letter-spacing:-0.02em}
+.sheet-x{width:32px;height:32px;border-radius:50%;background:var(--card-sunken);font-size:15px;color:var(--muted)}
+.sheet-search{background:var(--card-sunken);border:none;border-radius:12px;padding:12px 14px;color:var(--txt);font-size:15px;margin-bottom:12px}
+.sheet-search:focus{outline:none;box-shadow:0 0 0 2px var(--accent-ring)}
+.sheet-list{overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+.lib-group{font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:14px 2px 8px}
+.lib-item{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;
+  padding:13px 14px;border-radius:12px;background:var(--card);box-shadow:var(--shadow-sm);margin-bottom:8px;font-size:15px;font-weight:550;color:var(--txt)}
+.lib-item:active{transform:scale(.98)}
+.lib-item .lr{font-size:12px;color:var(--muted);font-weight:600}
+.sheet-wstep .wname{font-size:20px;font-weight:750;letter-spacing:-0.02em;margin-bottom:4px}
+.sheet-wstep .wsub{color:var(--muted);font-size:13.5px;font-weight:500;margin-bottom:16px}
+.sheet-wstep input{width:100%;background:var(--card-sunken);border:none;border-radius:14px;padding:16px;
+  color:var(--txt);font-size:28px;font-weight:750;text-align:center;letter-spacing:-0.02em}
+.sheet-wstep input:focus{outline:none;box-shadow:0 0 0 2px var(--accent-ring)}
 .track{height:5px;background:var(--card-sunken);border-radius:10px;overflow:hidden;margin-bottom:22px}
 .track>div{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent));border-radius:10px;
   transition:width .6s var(--ease);box-shadow:0 0 12px var(--accent-ring)}
@@ -537,6 +562,23 @@ svg.wchart{width:100%;height:150px;display:block;overflow:visible}
   <div id="sync-panel"></div>
   <div id="edit-list"></div>
   <button class="link" style="display:block;margin:8px 0 4px" onclick="resetAll()">Reset demo data</button>
+</div>
+
+<!-- EXERCISE PICKER SHEET -->
+<div class="sheet-bg" id="sheet-bg" onclick="closeExPicker()"></div>
+<div class="sheet" id="ex-sheet">
+  <div class="sheet-hd"><h3 id="sheet-title">Add exercise</h3><button class="sheet-x" onclick="closeExPicker()">✕</button></div>
+  <div id="sheet-browse">
+    <input class="sheet-search" id="lib-search" placeholder="Search exercises…" oninput="renderExLib(this.value)">
+    <div class="sheet-list" id="lib-list"></div>
+  </div>
+  <div class="sheet-wstep" id="sheet-wstep" style="display:none">
+    <div class="wname" id="wstep-name"></div>
+    <div class="wsub" id="wstep-sub"></div>
+    <input id="wstep-weight" type="number" inputmode="decimal" step="0.5" placeholder="Weight (kg)">
+    <button class="btn" style="margin-top:14px" onclick="confirmAddEx()">Add to workout</button>
+    <button class="btn ghost" style="margin-top:8px" onclick="backToBrowse()">‹ Back to list</button>
+  </div>
 </div>
 
 <!-- NAV -->
@@ -988,6 +1030,9 @@ function renderFlow(){
     chip.onclick=()=>goExercise(i);
     cw.appendChild(chip);
   });
+  const addChip=document.createElement('button');
+  addChip.className='exchip add';addChip.innerHTML='<span class="en">＋ Add exercise</span>';
+  addChip.onclick=openExPicker;cw.appendChild(addChip);
   const curChip=cw.children[FLOW.exIdx];
   if(curChip)curChip.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});
   // progress
@@ -1171,6 +1216,78 @@ function cannedReply(q){
   if(q.includes('sore')||q.includes('rest')||q.includes('recover'))return "Soreness ≠ progress. Aim for ~48h between training the same muscle, sleep 7–9h, and eat enough protein (1.6–2.2g/kg). Use the rest ring to keep 2–3 min between heavy compounds.";
   if(q.includes('skip')||q.includes('missed'))return "No stress on skipped sessions — that's the whole point of this app. Next time you do that workout, targets are built from what you last actually lifted, so nothing drifts.";
   return "Good question. In demo mode I keep it general: train each lift in its rep range, log honestly, rest 2–3 min on compounds, and let the progression engine handle the numbers. Wire up a Grok key in V2 for real answers.";
+}
+
+/* ============ EXERCISE LIBRARY / ADD MID-WORKOUT ============ */
+const EX_LIB=[
+ {g:'Chest',items:[['Barbell Bench Press',6,10],['Incline Bench Press',8,10],['DB Chest Press',8,12],['Incline DB Press',8,12],['Chest Fly (Machine/Cable)',10,15],['Dumbbell Fly',10,15],['Push-ups',10,20],['Cable Crossover',10,15],['Dips (Chest)',8,12]]},
+ {g:'Back',items:[['Deadlift',4,6],['Barbell Row',6,10],['One-Arm DB Row',8,12],['Pull-up',5,10],['Lat Pulldown',8,12],['Seated Cable Row',8,12],['T-Bar Row',8,10],['Chest-Supported Row',8,12],['Straight-Arm Pulldown',10,15],['Back Extension',10,15]]},
+ {g:'Shoulders',items:[['Overhead Press (Barbell)',6,10],['Shoulder Press (DB)',8,12],['Arnold Press',8,12],['Lateral Raise',12,15],['Front Raise',10,15],['Rear Delt Fly',12,15],['Face Pull',12,15],['Upright Row',10,12],['Machine Shoulder Press',8,12]]},
+ {g:'Legs',items:[['Back Squat',6,10],['Front Squat',6,10],['Goblet Squat',8,12],['Leg Press',10,12],['Bulgarian Split Squat',8,12],['Walking Lunge',10,12],['Romanian Deadlift',8,10],['DB Deadlift',10,12],['Leg Extension',10,15],['Leg Curl',10,15],['Standing Calf Raise',12,15],['Seated Calf Raise',12,20],['Hack Squat',8,12],['Step-ups',8,12]]},
+ {g:'Glutes',items:[['Hip Thrust',10,12],['Glute Bridge',10,15],['Cable Kickback',12,15],['Hip Abduction (Machine)',12,20],['Sumo Deadlift',6,10],['Good Morning',8,12]]},
+ {g:'Arms',items:[['Barbell Curl',8,12],['DB Bicep Curl',10,12],['Hammer Curl',10,12],['Preacher Curl',10,12],['Cable Curl',10,15],['Triceps Pushdown',10,12],['Overhead Triceps Extension',10,12],['Skull Crushers',8,12],['Dips (Triceps)',8,12],['Close-Grip Bench Press',8,10],['Wrist Curl',12,20]]},
+ {g:'Core',items:[['Plank (secs)',30,60],['Crunch',12,20],['Hanging Leg Raise',8,15],['Russian Twist',12,20],['Cable Crunch',12,15],['Ab Wheel Rollout',8,12],['Side Plank (secs)',20,45],['Dead Bug',10,15]]},
+];
+let PICK=null;
+function slug(n){return n.toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,24);}
+function openExPicker(){
+  PICK=null;
+  document.getElementById('sheet-browse').style.display='block';
+  document.getElementById('sheet-wstep').style.display='none';
+  document.getElementById('sheet-title').textContent='Add exercise';
+  document.getElementById('lib-search').value='';
+  renderExLib('');
+  document.getElementById('sheet-bg').classList.add('open');
+  document.getElementById('ex-sheet').classList.add('open');
+}
+function closeExPicker(){
+  document.getElementById('sheet-bg').classList.remove('open');
+  document.getElementById('ex-sheet').classList.remove('open');
+}
+function renderExLib(q){
+  q=(q||'').toLowerCase();
+  const wrap=document.getElementById('lib-list');wrap.innerHTML='';
+  EX_LIB.forEach(function(grp){
+    const hits=grp.items.filter(function(it){return !q||it[0].toLowerCase().includes(q);});
+    if(!hits.length)return;
+    const h=document.createElement('div');h.className='lib-group';h.textContent=grp.g;wrap.appendChild(h);
+    hits.forEach(function(it){
+      const b=document.createElement('button');b.className='lib-item';
+      b.innerHTML='<span>'+it[0]+'</span><span class="lr">3×'+it[1]+'–'+it[2]+'</span>';
+      b.onclick=function(){pickLibEx(it);};
+      wrap.appendChild(b);
+    });
+  });
+  if(!wrap.children.length)wrap.innerHTML='<div class="empty" style="padding:30px 10px">No match — try another name.</div>';
+}
+function pickLibEx(it){
+  PICK=it;
+  document.getElementById('sheet-browse').style.display='none';
+  document.getElementById('sheet-wstep').style.display='block';
+  document.getElementById('sheet-title').textContent='Set your weight';
+  document.getElementById('wstep-name').textContent=it[0];
+  document.getElementById('wstep-sub').textContent='3 sets × '+it[1]+'–'+it[2]+' reps · progresses automatically';
+  const w=document.getElementById('wstep-weight');w.value='';setTimeout(function(){w.focus();},250);
+}
+function backToBrowse(){
+  document.getElementById('sheet-browse').style.display='block';
+  document.getElementById('sheet-wstep').style.display='none';
+  document.getElementById('sheet-title').textContent='Add exercise';
+}
+function confirmAddEx(){
+  if(!PICK||!FLOW)return;
+  const wv=parseFloat(document.getElementById('wstep-weight').value);
+  if(isNaN(wv)||wv<0){toast('Type a starting weight');return;}
+  const id=slug(PICK[0]);
+  const exists=FLOW.workout.exercises.findIndex(function(e){return e.id===id;});
+  if(exists>=0){closeExPicker();goExercise(exists);toast('Already in this workout');return;}
+  const ex={id:id,name:PICK[0],sets:3,repMin:PICK[1],repMax:PICK[2],start:round(wv),inc:wv>=40?2.5:wv>=10?2:1};
+  FLOW.workout.exercises.push(ex);
+  FLOW.log[ex.id]=[];
+  saveProg(PROG);saveFlow();
+  closeExPicker();
+  goExercise(FLOW.workout.exercises.length-1);
+  toast(PICK[0]+' added 💪');
 }
 
 /* ============ PROGRAM EDITOR ============ */
