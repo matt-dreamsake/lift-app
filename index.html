@@ -430,6 +430,19 @@ svg.wchart{width:100%;height:150px;display:block;overflow:visible}
 .coach.open{transform:translate(-50%,-50%);opacity:1;pointer-events:auto}
 .coach-img{width:52px;height:52px;image-rendering:pixelated;margin-bottom:12px}
 .coach p{font-size:15.5px;line-height:1.55;font-weight:500;color:var(--txt);margin:0 0 20px}
+/* focus points */
+.ex-row{display:flex;align-items:center;gap:10px}
+.helpbtn{width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);
+  font-weight:800;font-size:15px;flex:none;transition:transform .2s var(--spring)}
+.helpbtn:active{transform:scale(.85)}
+.coach.focus{text-align:left;max-height:84vh;overflow-y:auto}
+.focus-name{font-size:20px;font-weight:750;letter-spacing:-0.02em;margin-bottom:10px;text-align:center}
+.focus-gif{width:100%;border-radius:16px;margin:0 0 14px;image-rendering:pixelated;display:block;background:var(--card-sunken)}
+.focus-cap{font-size:11.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+.focus-list{list-style:none;padding:0;margin:0 0 18px}
+.focus-list li{font-size:14.5px;line-height:1.45;font-weight:500;padding:7px 0 7px 22px;position:relative;border-bottom:1px solid var(--hair-2)}
+.focus-list li:last-child{border-bottom:none}
+.focus-list li::before{content:"▸";position:absolute;left:2px;color:var(--accent);font-weight:700}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -484,7 +497,7 @@ svg.wchart{width:100%;height:150px;display:block;overflow:visible}
   <div class="exswitch" id="flow-chips"></div>
 
   <div class="exhead">
-    <div class="ex" id="flow-ex"></div>
+    <div class="ex-row"><div class="ex" id="flow-ex"></div><button class="helpbtn" onclick="openFocus()" aria-label="How to do this exercise">?</button></div>
     <div class="pos" id="flow-pos"></div>
   </div>
 
@@ -589,6 +602,16 @@ svg.wchart{width:100%;height:150px;display:block;overflow:visible}
     <button class="btn" style="margin-top:14px" onclick="confirmAddEx()">Add to workout</button>
     <button class="btn ghost" style="margin-top:8px" onclick="backToBrowse()">‹ Back to list</button>
   </div>
+</div>
+
+<!-- FOCUS POINTS POPUP -->
+<div class="coach-bg" id="focus-bg" onclick="closeFocus()"></div>
+<div class="coach focus" id="focus-card">
+  <div class="focus-name" id="focus-name"></div>
+  <img id="focus-gif" class="focus-gif" alt="">
+  <div class="focus-cap">Focus Points</div>
+  <ul class="focus-list" id="focus-list"></ul>
+  <button class="btn" onclick="closeFocus()">Got it</button>
 </div>
 
 <!-- COACH POPUP -->
@@ -857,6 +880,71 @@ function go(s){
 }
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
   clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1900);}
+const FOCUS=(function(){
+  const F={};const set=function(ids,cues){ids.forEach(function(i){F[i]=cues;});};
+  set(['bench','barbellbenchpress','inclinebenchpress'],["Feet planted, slight arch, shoulder blades pinched","Lower to mid-chest, elbows ~45°","Drive up hard — no bounce off the chest"]);
+  set(['chpress','incdb','dbchestpress','inclinedbpress'],["Shoulder blades pinched into the bench","Lower to chest level with control","Press up and slightly inward"]);
+  set(['fly','dumbbellfly','chestflymachinecable','cablecrossover'],["Slight elbow bend — keep it fixed","Open wide, feel the chest stretch","Hug arc together — squeeze pecs, not shoulders"]);
+  set(['pushups'],["Rigid plank — glutes and abs tight","Chest all the way to the floor","Full lockout every rep"]);
+  set(['dipschest','dipstriceps'],["Lean forward for chest, stay upright for triceps","Lower until elbows hit ~90°","No shrugging — shoulders down"]);
+  set(['dead','deadlift','sumodeadlift'],["Bar over mid-foot, flat back, big brace","Push the floor away — bar stays close","Hips and shoulders rise together"]);
+  set(['rdl','romaniandeadlift','goodmorning'],["Soft knees, push hips straight back","Flat back — feel the hamstring stretch","Weights stay close to your legs"]);
+  set(['dbdl','dbdeadlift'],["Hinge, don't squat — hips back","Flat back, dumbbells close","Stand tall and squeeze glutes at the top"]);
+  set(['pull','pullup','latpulldown'],["Start from a full stretch","Pull elbows down toward your hips","Chest up — no swinging"]);
+  set(['row','barbellrow','onearmdbrow','seatedcablerow','tbarrow','chestsupportedrow'],["Flat back, hinge held solid","Pull elbow to hip — squeeze the shoulder blade","No torso heave; control the lower"]);
+  set(['straightarmpulldown'],["Arms straight, slight hinge","Sweep down to thighs with your lats","Slow stretch on the way back up"]);
+  set(['backextension'],["Hinge at the hips, neutral spine","Squeeze glutes to come up","Stop at straight — don't hyperextend"]);
+  set(['face','facepull'],["Pull the rope to your eyebrows","Elbows high, hands pull apart at the end","Pause and squeeze the rear delts"]);
+  set(['ohp','overheadpressbarbell'],["Squeeze glutes, ribs down — no lean-back","Bar path close to your face","Finish locked out, biceps by ears"]);
+  set(['shpress','shoulderpressdb','machineshoulderpress','arnoldpress'],["Ribs down, core braced","Press up — don't flare early","Lower to ear level with control"]);
+  set(['latr','lateralraise'],["Lead with the elbows, slight bend","Raise to shoulder height only","No swinging — lighter and stricter wins"]);
+  set(['frontraise'],["Raise to shoulder height only","Thumbs tilted slightly up","Zero momentum from the hips"]);
+  set(['reardelt','reardeltfly'],["Hinge forward, soft elbows","Lead with your pinkies, open wide","Pause at the top — no bounce"]);
+  set(['uprightrow'],["Pull with the elbows, not hands","Stop at chest height","Keep the bar close to your body"]);
+  set(['curl','barbellcurl','dbbicepcurl','hammercurl','preachercurl','cablecurl'],["Elbows pinned to your sides","Squeeze hard at the top","Lower slow — 2–3 seconds down"]);
+  set(['pushd','tricepspushdown'],["Elbows glued to your sides","Full lockout — squeeze the triceps","Control the return; don't let the stack yank"]);
+  set(['skullcrushers','overheadtricepsextension','closegripbenchpress'],["Elbows tucked and still","Deep triceps stretch at the bottom","Lock out without flaring"]);
+  set(['wristcurl'],["Forearms fully supported","Roll down to the fingertips","Squeeze up slowly"]);
+  set(['squat','backsquat','frontsquat','gobletsquat','hacksquat'],["Big breath and brace before you descend","Knees track over the toes","Hit depth — then drive up through mid-foot"]);
+  set(['bulg','bulgariansplitsquat'],["Front foot well forward — knee over ankle","Drop the back knee straight down","Drive up through the front heel"]);
+  set(['walkinglunge','stepups'],["Tall torso the whole time","Front knee tracks over toes","Push through the lead heel — don't spring off the back leg"]);
+  set(['lpress','legpress'],["Feet shoulder-width, mid-platform","Lower slow to ~90°","Press through heels; don't slam the lockout"]);
+  set(['legextension'],["Pause and squeeze at the top","Lower 2–3 seconds","No hips lifting off the seat"]);
+  set(['lcurl','legcurl'],["Squeeze hamstrings — no momentum","Full curl, pause at the top","Slow, controlled release"]);
+  set(['calf','standingcalfraise','seatedcalfraise'],["Full stretch at the bottom","1-second pause at the top","No bouncing — make the muscle do it"]);
+  set(['hipthrust','glutebridge'],["Chin tucked, ribs down","Drive heels to full hip lockout","Squeeze glutes for a second at the top"]);
+  set(['cablepullthrough'],["Grip the rope hard — tension before you move","Push hips back with a flat back","Snap the hips through and squeeze glutes"]);
+  set(['pallofpress'],["Hips and shoulders square","Press out slow — resist the twist","Ribs down, keep breathing"]);
+  set(['cablekickback'],["Slight hinge, core locked","Kick back and up, squeeze the glute","Don't arch the lower back"]);
+  set(['hipabductionmachine'],["Sit tall against the pad","Pause at the widest point","Fight the return — don't let it snap back"]);
+  set(['hanginglegraise'],["Dead still before each rep — no swing","Tilt the pelvis, curl knees up","Lower slower than you lifted"]);
+  set(['abwheelrollout'],["Tuck pelvis and squeeze glutes first","Only roll as far as your back stays flat","Pull back with your abs, not your arms"]);
+  set(['core'],["Quality beats speed","Exhale on the effort","Protect the lower back — stop when form slips"]);
+  set(['planksecs','sideplanksecs'],["Straight line from head to heels","Glutes and abs braced hard","Keep breathing — don't hold it"]);
+  set(['crunch','cablecrunch'],["Curl the spine — don't pull the neck","Exhale hard at the top","Slow return, keep tension"]);
+  set(['russiantwist'],["Lean back ~45°, chest proud","Rotate from the ribs, not the arms","Touch, don't slam"]);
+  set(['deadbug'],["Lower back glued to the floor","Opposite arm and leg, slow","Exhale as you extend"]);
+  return F;
+})();
+const FOCUS_GENERIC=["Control the lowering phase (2–3s)","Brace your core before every rep","Full range of motion — no momentum"];
+function openFocus(){
+  if(!FLOW)return;
+  const ex=curEx();
+  document.getElementById('focus-name').textContent=ex.name;
+  const cues=FOCUS[ex.id]||FOCUS_GENERIC;
+  document.getElementById('focus-list').innerHTML=cues.map(function(c){return '<li>'+c+'</li>';}).join('');
+  const img=document.getElementById('focus-gif');
+  img.style.display='block';
+  img.onerror=function(){img.style.display='none';};
+  img.src='gifs/'+ex.id+'.gif';
+  document.getElementById('focus-bg').classList.add('open');
+  document.getElementById('focus-card').classList.add('open');
+  haptic(8);
+}
+function closeFocus(){
+  document.getElementById('focus-bg').classList.remove('open');
+  document.getElementById('focus-card').classList.remove('open');
+}
 function showCoach(msg){
   document.getElementById('coach-msg').textContent=msg;
   document.getElementById('coach-bg').classList.add('open');
