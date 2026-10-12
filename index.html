@@ -420,6 +420,16 @@ svg.wchart{width:100%;height:150px;display:block;overflow:visible}
 .pc-img{width:84px;height:84px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 4px var(--accent-soft);image-rendering:pixelated}
 .pchip{display:inline-flex;align-items:center;gap:7px}
 .pchip img{width:24px;height:24px;border-radius:50%;object-fit:cover;image-rendering:pixelated}
+/* coach popup */
+.coach-bg{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .3s var(--ease)}
+.coach-bg.open{opacity:1;pointer-events:auto}
+.coach{position:fixed;left:50%;top:50%;z-index:91;width:calc(100% - 56px);max-width:360px;
+  transform:translate(-50%,-50%) scale(.9);opacity:0;pointer-events:none;
+  background:var(--bg-elev);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);
+  padding:28px 24px 22px;text-align:center;transition:transform .4s var(--spring),opacity .3s var(--ease)}
+.coach.open{transform:translate(-50%,-50%);opacity:1;pointer-events:auto}
+.coach-img{width:52px;height:52px;image-rendering:pixelated;margin-bottom:12px}
+.coach p{font-size:15.5px;line-height:1.55;font-weight:500;color:var(--txt);margin:0 0 20px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -581,6 +591,14 @@ svg.wchart{width:100%;height:150px;display:block;overflow:visible}
   </div>
 </div>
 
+<!-- COACH POPUP -->
+<div class="coach-bg" id="coach-bg" onclick="closeCoach()"></div>
+<div class="coach" id="coach-card">
+  <img src="icons/glyph-dumbbell.png" alt="" class="coach-img">
+  <p id="coach-msg"></p>
+  <button class="btn" onclick="closeCoach()">Let's go! 💪</button>
+</div>
+
 <!-- NAV -->
 <div class="nav">
   <button data-s="home" class="on" onclick="go('home')"><span class="ico">🏋️</span>Train</button>
@@ -650,12 +668,16 @@ const SAMPLE={
 const GIGI_SAMPLE={
   units:UNIT,
   workouts:[
-    {id:'g1',name:'Day 1 (Squat/Glutes/Chest)',glyph:'🏋️‍♀️',exercises:[
-      {id:'squat',name:'Back Squat',sets:3,repMin:8,repMax:10,start:40,inc:0.5},
+    {id:'g1',name:'Day 1 (Circuit + Cables)',glyph:'🏋️‍♀️',
+     intro:"Welcome to Day 1! We're kicking off with some Bulgarians super-setted with some ab work. Do one leg Bulgarian, then move to the hanging leg raise, followed by the other leg Bulgarian and the ab-wheel to finish one round of the circuit.",
+     exercises:[
       {id:'bulg',name:'Bulgarian Split Squat',sets:3,repMin:8,repMax:10,start:11,inc:0.5},
-      {id:'hipthrust',name:'Hip Thrust',sets:3,repMin:10,repMax:12,start:120,inc:0.5},
-      {id:'chpress',name:'DB Chest Press',sets:3,repMin:8,repMax:10,start:11,inc:0.5},
-      {id:'fly',name:'Dumbbell Fly',sets:2,repMin:12,repMax:15,start:5,inc:0.5},
+      {id:'hanginglegraise',name:'Hanging Leg Raise',sets:3,repMin:8,repMax:15,start:0,inc:0.5},
+      {id:'abwheelrollout',name:'Ab Wheel Rollout',sets:3,repMin:8,repMax:12,start:0,inc:0.5},
+      {id:'cablepullthrough',name:'Cable Pull Through',sets:3,repMin:10,repMax:12,start:22.7,inc:0.5,
+       msg:"Congrats! Good lifting. Head over to the cables for the next super set. First the cable pull through — remember to grip the ropes hard and get it tensioned! Alternate that with the Pallof press."},
+      {id:'pallofpress',name:'Pallof Press',sets:3,repMin:10,repMax:12,start:13.6,inc:0.5},
+      {id:'cablekickback',name:'Cable Kickback',sets:3,repMin:12,repMax:15,start:13.6,inc:0.5},
     ]},
     {id:'g2',name:'Day 2 (Deadlift/Back/Arms)',glyph:'💫',exercises:[
       {id:'dbdl',name:'DB Deadlift',sets:3,repMin:10,repMax:12,start:11,inc:0.5},
@@ -686,6 +708,18 @@ function seedGigi(){
     localStorage.setItem('ll_gigi_program',JSON.stringify(GIGI_SAMPLE));
   }
   localStorage.setItem('ll_gigi_seeded','1');
+}
+function patchGigiD1(){
+  if(localStorage.getItem('ll_gigi_d1v2'))return;
+  try{
+    const raw=localStorage.getItem('ll_gigi_program');
+    if(raw){
+      const prog=JSON.parse(raw);
+      const i=prog.workouts.findIndex(function(w){return w.id==='g1';});
+      if(i>=0){prog.workouts[i]=JSON.parse(JSON.stringify(GIGI_SAMPLE.workouts[0]));localStorage.setItem('ll_gigi_program',JSON.stringify(prog));}
+    }
+  }catch(e){}
+  localStorage.setItem('ll_gigi_d1v2','1');
 }
 
 function normInc(p){if(p&&p.workouts)p.workouts.forEach(function(w){(w.exercises||[]).forEach(function(e){e.inc=0.5;});});return p;}
@@ -774,7 +808,7 @@ function renderSync(){
 }
 
 
-migrateLegacy();seedGigi();
+migrateLegacy();seedGigi();patchGigiD1();
 let PROG=loadProg();
 if(!localStorage.getItem(pk('program'))) saveProg(PROG);
 
@@ -823,6 +857,22 @@ function go(s){
 }
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
   clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1900);}
+function showCoach(msg){
+  document.getElementById('coach-msg').textContent=msg;
+  document.getElementById('coach-bg').classList.add('open');
+  document.getElementById('coach-card').classList.add('open');
+  haptic(12);
+}
+function closeCoach(){
+  document.getElementById('coach-bg').classList.remove('open');
+  document.getElementById('coach-card').classList.remove('open');
+}
+function maybeIntro(){
+  if(!FLOW||!FLOW.workout.intro)return;
+  FLOW.shownMsgs=FLOW.shownMsgs||{};
+  if(FLOW.shownMsgs.__intro)return;
+  FLOW.shownMsgs.__intro=1;saveFlow();showCoach(FLOW.workout.intro);
+}
 function haptic(ms){try{navigator.vibrate&&navigator.vibrate(ms||8);}catch(e){}}
 
 /* gentle count-up for the hero weight */
@@ -969,11 +1019,11 @@ function startFlow(wid){
   const inProg=f&&Object.values(f.log||{}).some(a=>a.length);
   if(inProg&&!confirm('You have a workout in progress. Start fresh and discard it?'))return;
   const w=PROG.workouts.find(x=>x.id===wid);
-  FLOW={workout:w,exIdx:0,log:{},editing:null};
+  FLOW={workout:w,exIdx:0,log:{},editing:null,shownMsgs:{}};
   w.exercises.forEach(e=>FLOW.log[e.id]=[]);
   clearFlow();saveFlow();
   document.getElementById('flow-name').textContent=w.name.split(' (')[0].toUpperCase();
-  go('flow');renderFlow();
+  go('flow');renderFlow();maybeIntro();
 }
 function curEx(){return FLOW.workout.exercises[FLOW.exIdx];}
 function renderFlow(){
@@ -988,6 +1038,7 @@ function renderFlow(){
   const _stuck=t.status==='hold'&&sameWeightStreak(ex.id)>=3;
   document.getElementById('flow-nudge').style.display=_stuck?'inline-block':'none';
   if(_stuck){ FLOW.nudged=FLOW.nudged||{}; if(!FLOW.nudged[ex.id]){FLOW.nudged[ex.id]=1;toast('Time to step the weight up! ⬆️');haptic(15);} }
+  if(ex.msg){ FLOW.shownMsgs=FLOW.shownMsgs||{}; if(!FLOW.shownMsgs[ex.id]){FLOW.shownMsgs[ex.id]=1;saveFlow();showCoach(ex.msg);} }
   const _editing=FLOW.editing!=null && FLOW.log[ex.id][FLOW.editing];
   if(_editing){
     document.getElementById('in-w').value=_editing.weight;
@@ -1095,17 +1146,17 @@ function finishWorkout(){
   go('home');toast(`Workout saved — ${n} sets logged 💪`);
 }
 function quitFlow(){ stopTimer(); const any=FLOW&&Object.values(FLOW.log).some(a=>a.length); if(any){saveFlow();}else{FLOW=null;clearFlow();} go('home'); }
-function saveFlow(){ if(FLOW) localStorage.setItem(pk('flow'),JSON.stringify({workoutId:FLOW.workout.id,exIdx:FLOW.exIdx,log:FLOW.log})); }
+function saveFlow(){ if(FLOW) localStorage.setItem(pk('flow'),JSON.stringify({workoutId:FLOW.workout.id,exIdx:FLOW.exIdx,log:FLOW.log,shownMsgs:FLOW.shownMsgs||{}})); }
 function clearFlow(){ localStorage.removeItem(pk('flow')); }
 function resumeFlow(){
   let f=null; try{f=JSON.parse(localStorage.getItem(pk('flow')));}catch(e){}
   if(!f) return;
   const w=PROG.workouts.find(x=>x.id===f.workoutId);
   if(!w){clearFlow();renderHome();return;}
-  FLOW={workout:w,exIdx:f.exIdx||0,log:f.log||{},editing:null};
+  FLOW={workout:w,exIdx:f.exIdx||0,log:f.log||{},editing:null,shownMsgs:f.shownMsgs||{}};
   w.exercises.forEach(e=>{if(!FLOW.log[e.id])FLOW.log[e.id]=[];});
   document.getElementById('flow-name').textContent=w.name.split(' (')[0].toUpperCase();
-  go('flow');renderFlow();
+  go('flow');renderFlow();maybeIntro();
 }
 function discardFlow(){ if(confirm('Discard the in-progress workout?')){FLOW=null;clearFlow();renderHome();} }
 function editSet(i){ if(!FLOW)return; FLOW.editing=i; document.getElementById('rest-card').style.display='none'; stopTimer(); renderFlow(); window.scrollTo({top:0,behavior:'smooth'}); }
