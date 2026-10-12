@@ -721,6 +721,8 @@ const GIGI_SAMPLE={
       {id:'hipthrust',name:'Hip Thrust Machine',sets:3,repMin:10,repMax:12,start:120,inc:0.5,rest:0,
        msg:"Strong work! Last superset — hip thrust machine paired with the ab wheel. Thrust, then roll, that's one round. Rest 90 seconds between rounds."},
       {id:'abwheelrollout',name:'Ab Wheel Rollout',sets:3,repMin:10,repMax:12,start:0,inc:0.5,rest:90},
+      {id:'reversepecdeck',name:'Reverse Pec Deck',sets:3,repMin:12,repMax:15,start:15,inc:0.5,
+       msg:"Last one! Reverse pec deck to finish — light and strict, squeeze those rear delts."},
     ]},
   ]
 };
@@ -749,7 +751,7 @@ function patchGigiD1(){
   localStorage.setItem('ll_gigi_d1v4','1');
 }
 function patchGigiD3(){
-  if(localStorage.getItem('ll_gigi_d3v2'))return;
+  if(localStorage.getItem('ll_gigi_d3v3'))return;
   try{
     const raw=localStorage.getItem('ll_gigi_program');
     if(raw){
@@ -758,7 +760,7 @@ function patchGigiD3(){
       if(i>=0){prog.workouts[i]=JSON.parse(JSON.stringify(GIGI_SAMPLE.workouts[2]));localStorage.setItem('ll_gigi_program',JSON.stringify(prog));}
     }
   }catch(e){}
-  localStorage.setItem('ll_gigi_d3v2','1');
+  localStorage.setItem('ll_gigi_d3v3','1');
 }
 function patchGigiD2(){
   if(localStorage.getItem('ll_gigi_d2v2'))return;
@@ -927,7 +929,7 @@ const FOCUS=(function(){
   set(['shpress','shoulderpressdb','machineshoulderpress','arnoldpress'],["Ribs down, core braced","Press up — don't flare early","Lower to ear level with control"]);
   set(['latr','lateralraise'],["Lead with the elbows, slight bend","Raise to shoulder height only","No swinging — lighter and stricter wins"]);
   set(['frontraise'],["Raise to shoulder height only","Thumbs tilted slightly up","Zero momentum from the hips"]);
-  set(['reardelt','reardeltfly'],["Hinge forward, soft elbows","Lead with your pinkies, open wide","Pause at the top — no bounce"]);
+  set(['reardelt','reardeltfly','reversepecdeck'],["Hinge forward, soft elbows","Lead with your pinkies, open wide","Pause at the top — no bounce"]);
   set(['uprightrow'],["Pull with the elbows, not hands","Stop at chest height","Keep the bar close to your body"]);
   set(['curl','barbellcurl','dbbicepcurl','hammercurl','preachercurl','cablecurl'],["Elbows pinned to your sides","Squeeze hard at the top","Lower slow — 2–3 seconds down"]);
   set(['pushd','tricepspushdown'],["Elbows glued to your sides","Full lockout — squeeze the triceps","Control the return; don't let the stack yank"]);

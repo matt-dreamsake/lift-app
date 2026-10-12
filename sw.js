@@ -1,6 +1,6 @@
 /* Lift — offline service worker.
    Bump CACHE version whenever you change any cached file to force an update. */
-const CACHE = 'lift-v16';
+const CACHE = 'lift-v17';
 const ASSETS = [
   './',
   './index.html',
