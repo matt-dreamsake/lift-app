@@ -692,15 +692,16 @@ const GIGI_SAMPLE={
   units:UNIT,
   workouts:[
     {id:'g1',name:'Day 1 (Circuit + Cables)',glyph:'🏋️‍♀️',
-     intro:"Welcome to Day 1! We're kicking off with some Bulgarians super-setted with some ab work. Do one leg Bulgarian, then move to the hanging leg raise, followed by the other leg Bulgarian and the ab-wheel to finish one round of the circuit.",
+     intro:"Welcome to Day 1! We're kicking off with some Bulgarians super-setted with some ab work. Do one leg Bulgarian, then move to the hanging leg raise, followed by the other leg Bulgarian and the ab-wheel to finish one round of the circuit. Rest 90 seconds between rounds.",
      exercises:[
-      {id:'bulg',name:'Bulgarian Split Squat',sets:3,repMin:8,repMax:10,start:11,inc:0.5},
-      {id:'hanginglegraise',name:'Hanging Leg Raise',sets:3,repMin:8,repMax:15,start:0,inc:0.5},
-      {id:'abwheelrollout',name:'Ab Wheel Rollout',sets:3,repMin:8,repMax:12,start:0,inc:0.5},
-      {id:'cablepullthrough',name:'Cable Pull Through',sets:3,repMin:10,repMax:12,start:22.7,inc:0.5,
-       msg:"Congrats! Good lifting. Head over to the cables for the next super set. First the cable pull through — remember to grip the ropes hard and get it tensioned! Alternate that with the Pallof press."},
+      {id:'bulg',name:'Bulgarian Split Squat',sets:3,repMin:8,repMax:10,start:11,inc:0.5,rest:0},
+      {id:'hanginglegraise',name:'Hanging Leg Raise',sets:3,repMin:8,repMax:15,start:0,inc:0.5,rest:0},
+      {id:'abwheelrollout',name:'Ab Wheel Rollout',sets:3,repMin:8,repMax:12,start:0,inc:0.5,rest:90},
+      {id:'cablekickback',name:'Cable Kickback',sets:3,repMin:12,repMax:15,start:13.6,inc:0.5,
+       msg:"Congrats! Good lifting. Head over to the cables for the next super set — cable kickbacks alternated with the Pallof press. Both sides on the kickback, then both sides on the Pallof, that's one round."},
       {id:'pallofpress',name:'Pallof Press',sets:3,repMin:10,repMax:12,start:13.6,inc:0.5},
-      {id:'cablekickback',name:'Cable Kickback',sets:3,repMin:12,repMax:15,start:13.6,inc:0.5},
+      {id:'cablepullthrough',name:'Cable Pull Through',sets:3,repMin:10,repMax:12,start:22.7,inc:0.5,
+       msg:"Last one! Cable pull through to finish — remember to grip the ropes hard and get it tensioned!"},
     ]},
     {id:'g2',name:'Day 2 (Deadlift/Back/Arms)',glyph:'💫',exercises:[
       {id:'dbdl',name:'DB Deadlift',sets:3,repMin:10,repMax:12,start:11,inc:0.5},
@@ -733,7 +734,7 @@ function seedGigi(){
   localStorage.setItem('ll_gigi_seeded','1');
 }
 function patchGigiD1(){
-  if(localStorage.getItem('ll_gigi_d1v2'))return;
+  if(localStorage.getItem('ll_gigi_d1v4'))return;
   try{
     const raw=localStorage.getItem('ll_gigi_program');
     if(raw){
@@ -742,7 +743,7 @@ function patchGigiD1(){
       if(i>=0){prog.workouts[i]=JSON.parse(JSON.stringify(GIGI_SAMPLE.workouts[0]));localStorage.setItem('ll_gigi_program',JSON.stringify(prog));}
     }
   }catch(e){}
-  localStorage.setItem('ll_gigi_d1v2','1');
+  localStorage.setItem('ll_gigi_d1v4','1');
 }
 
 function normInc(p){if(p&&p.workouts)p.workouts.forEach(function(w){(w.exercises||[]).forEach(function(e){e.inc=0.5;});});return p;}
@@ -1207,7 +1208,10 @@ function logSet(){
   if(FLOW.log[ex.id].length>=ex.sets){toast('All sets done — tap Next');return;}
   FLOW.log[ex.id].push({weight:w,reps:r});haptic(12);saveFlow();
   renderFlow();
-  if(FLOW.log[ex.id].length<ex.sets)startRest();
+  if(FLOW.log[ex.id].length<ex.sets){
+    if(ex.rest===0){/* circuit move — flow straight on */}
+    else startRest(typeof ex.rest==='number'?ex.rest:undefined);
+  }
 }
 function goExercise(i){
   if(i===FLOW.exIdx)return;
@@ -1254,7 +1258,7 @@ function deleteSet(i){ const ex=curEx(); FLOW.log[ex.id].splice(i,1); if(FLOW.ed
 /* ============ REST TIMER (circular) ============ */
 const RING_C=2*Math.PI*52;
 let timer={left:120,id:null,running:false,dur:120};
-function startRest(){timer.dur=timer.dur||120;timer.left=timer.dur;timer.running=true;
+function startRest(sec){timer.dur=(typeof sec==='number'&&sec>0)?sec:(timer.dur||120);timer.left=timer.dur;timer.running=true;
   const rc=document.getElementById('rest-card');rc.style.display='block';
   document.getElementById('t-toggle').textContent='Pause';
   const fg=document.getElementById('ring-fg');fg.style.strokeDasharray=RING_C;fg.style.strokeDashoffset=0;
