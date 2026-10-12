@@ -703,21 +703,24 @@ const GIGI_SAMPLE={
       {id:'cablepullthrough',name:'Cable Pull Through',sets:3,repMin:10,repMax:12,start:22.7,inc:0.5,
        msg:"Last one! Cable pull through to finish — remember to grip the ropes hard and get it tensioned!"},
     ]},
-    {id:'g2',name:'Day 2 (Deadlift/Back/Arms)',glyph:'💫',exercises:[
-      {id:'dbdl',name:'DB Deadlift',sets:3,repMin:10,repMax:12,start:11,inc:0.5},
-      {id:'row',name:'One-Arm Row',sets:3,repMin:8,repMax:10,start:16,inc:0.5},
-      {id:'shpress',name:'Shoulder Press',sets:3,repMin:8,repMax:10,start:10,inc:0.5},
-      {id:'latr',name:'Lateral Raise',sets:3,repMin:12,repMax:15,start:3,inc:0.5},
-      {id:'curl',name:'Bicep Curl',sets:3,repMin:12,repMax:15,start:4,inc:0.5},
-      {id:'core',name:'Core Circuit',sets:3,repMin:12,repMax:15,start:0,inc:0.5},
+    {id:'g2',name:'Day 2 (Back/Press Supersets)',glyph:'💫',
+     intro:"Welcome to Day 2! Superset time — chest-supported rows straight into incline dumbbell press. Row first, press second, that's one round. Rest 90 seconds between rounds.",
+     exercises:[
+      {id:'chestsupportedrow',name:'Chest-Supported Row',sets:3,repMin:10,repMax:12,start:20,inc:0.5,rest:0},
+      {id:'inclinedbpress',name:'Incline Dumbbell Press',sets:3,repMin:10,repMax:12,start:10,inc:0.5,rest:90},
+      {id:'latpulldown',name:'Lat Pulldown',sets:3,repMin:10,repMax:12,start:25,inc:0.5,rest:0,
+       msg:"Great work! On to the big triple — lat pulldown, then lying leg curl, then pec deck. All three back-to-back is one round. Rest 90 seconds between rounds."},
+      {id:'legcurl',name:'Lying Leg Curl',sets:3,repMin:10,repMax:12,start:20,inc:0.5,rest:0},
+      {id:'pecdeck',name:'Pec Deck',sets:3,repMin:10,repMax:12,start:20,inc:0.5,rest:90},
     ]},
-    {id:'g3',name:'Day 3 (Full Body)',glyph:'🔥',exercises:[
-      {id:'squat',name:'Back Squat',sets:3,repMin:8,repMax:10,start:40,inc:0.5},
-      {id:'hipthrust',name:'Hip Thrust',sets:3,repMin:10,repMax:12,start:120,inc:0.5},
-      {id:'shpress',name:'Shoulder Press',sets:3,repMin:8,repMax:10,start:11,inc:0.5},
-      {id:'row',name:'One-Arm Row',sets:3,repMin:8,repMax:10,start:16,inc:0.5},
-      {id:'reardelt',name:'Rear Delt Fly',sets:3,repMin:12,repMax:15,start:3,inc:0.5},
-      {id:'calf',name:'Calf Raise',sets:3,repMin:12,repMax:15,start:10,inc:0.5},
+    {id:'g3',name:'Day 3 (Legs/Back Supersets)',glyph:'🔥',
+     intro:"Welcome to Day 3! First superset — leg press straight into the cable row. Press first, row second, that's one round. Rest 90 seconds between rounds.",
+     exercises:[
+      {id:'legpress',name:'Leg Press',sets:3,repMin:10,repMax:12,start:60,inc:0.5,rest:0},
+      {id:'seatedcablerow',name:'Cable Row',sets:3,repMin:10,repMax:12,start:25,inc:0.5,rest:90},
+      {id:'hipthrust',name:'Hip Thrust Machine',sets:3,repMin:10,repMax:12,start:120,inc:0.5,rest:0,
+       msg:"Strong work! Last superset — hip thrust machine paired with the ab wheel. Thrust, then roll, that's one round. Rest 90 seconds between rounds."},
+      {id:'abwheelrollout',name:'Ab Wheel Rollout',sets:3,repMin:10,repMax:12,start:0,inc:0.5,rest:90},
     ]},
   ]
 };
@@ -744,6 +747,30 @@ function patchGigiD1(){
     }
   }catch(e){}
   localStorage.setItem('ll_gigi_d1v4','1');
+}
+function patchGigiD3(){
+  if(localStorage.getItem('ll_gigi_d3v2'))return;
+  try{
+    const raw=localStorage.getItem('ll_gigi_program');
+    if(raw){
+      const prog=JSON.parse(raw);
+      const i=prog.workouts.findIndex(function(w){return w.id==='g3';});
+      if(i>=0){prog.workouts[i]=JSON.parse(JSON.stringify(GIGI_SAMPLE.workouts[2]));localStorage.setItem('ll_gigi_program',JSON.stringify(prog));}
+    }
+  }catch(e){}
+  localStorage.setItem('ll_gigi_d3v2','1');
+}
+function patchGigiD2(){
+  if(localStorage.getItem('ll_gigi_d2v2'))return;
+  try{
+    const raw=localStorage.getItem('ll_gigi_program');
+    if(raw){
+      const prog=JSON.parse(raw);
+      const i=prog.workouts.findIndex(function(w){return w.id==='g2';});
+      if(i>=0){prog.workouts[i]=JSON.parse(JSON.stringify(GIGI_SAMPLE.workouts[1]));localStorage.setItem('ll_gigi_program',JSON.stringify(prog));}
+    }
+  }catch(e){}
+  localStorage.setItem('ll_gigi_d2v2','1');
 }
 
 function normInc(p){if(p&&p.workouts)p.workouts.forEach(function(w){(w.exercises||[]).forEach(function(e){e.inc=0.5;});});return p;}
@@ -832,7 +859,7 @@ function renderSync(){
 }
 
 
-migrateLegacy();seedGigi();patchGigiD1();
+migrateLegacy();seedGigi();patchGigiD1();patchGigiD2();patchGigiD3();
 let PROG=loadProg();
 if(!localStorage.getItem(pk('program'))) saveProg(PROG);
 
@@ -885,7 +912,7 @@ const FOCUS=(function(){
   const F={};const set=function(ids,cues){ids.forEach(function(i){F[i]=cues;});};
   set(['bench','barbellbenchpress','inclinebenchpress'],["Feet planted, slight arch, shoulder blades pinched","Lower to mid-chest, elbows ~45°","Drive up hard — no bounce off the chest"]);
   set(['chpress','incdb','dbchestpress','inclinedbpress'],["Shoulder blades pinched into the bench","Lower to chest level with control","Press up and slightly inward"]);
-  set(['fly','dumbbellfly','chestflymachinecable','cablecrossover'],["Slight elbow bend — keep it fixed","Open wide, feel the chest stretch","Hug arc together — squeeze pecs, not shoulders"]);
+  set(['fly','dumbbellfly','chestflymachinecable','cablecrossover','pecdeck'],["Slight elbow bend — keep it fixed","Open wide, feel the chest stretch","Hug arc together — squeeze pecs, not shoulders"]);
   set(['pushups'],["Rigid plank — glutes and abs tight","Chest all the way to the floor","Full lockout every rep"]);
   set(['dipschest','dipstriceps'],["Lean forward for chest, stay upright for triceps","Lower until elbows hit ~90°","No shrugging — shoulders down"]);
   set(['dead','deadlift','sumodeadlift'],["Bar over mid-foot, flat back, big brace","Push the floor away — bar stays close","Hips and shoulders rise together"]);
